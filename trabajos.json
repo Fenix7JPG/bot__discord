@@ -1,0 +1,804 @@
+{
+  "jobs": [
+    {
+      "slug": "recogedor-basura",
+      "name": "Recogedor de basura",
+      "emoji": "🗑️",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "lavaplatos",
+      "name": "Lavaplatos",
+      "emoji": "🍽️",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "jardinero-principiante",
+      "name": "Jardinero principiante",
+      "emoji": "🌱",
+      "level": "mediocre",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "mensajero-bicicleta",
+      "name": "Mensajero en bicicleta",
+      "emoji": "🚴",
+      "level": "mediocre",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "lavacoches",
+      "name": "Lavacoches",
+      "emoji": "🧽🚗",
+      "level": "mediocre",
+      "required_experience": 2,
+      "sueldo": 10
+    },
+    {
+      "slug": "recolector-botellas",
+      "name": "Recolector de botellas",
+      "emoji": "♻️",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "vendedor-ambulante",
+      "name": "Vendedor ambulante",
+      "emoji": "🛒",
+      "level": "mediocre",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "empacador-supermercado",
+      "name": "Empacador de supermercado",
+      "emoji": "🛍️",
+      "level": "mediocre",
+      "required_experience": 1,
+      "sueldo": 10
+    },
+    {
+      "slug": "ayudante-mudanza",
+      "name": "Ayudante de mudanza",
+      "emoji": "📦🚛",
+      "level": "mediocre",
+      "required_experience": 10,
+      "sueldo": 20
+    },
+    {
+      "slug": "barredor-calles",
+      "name": "Barredor de calles",
+      "emoji": "🧹",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "chalan",
+      "name": "Chalán",
+      "emoji": "🔨",
+      "level": "mediocre",
+      "required_experience": 3,
+      "sueldo": 10
+    },
+    {
+      "slug": "disenador-grafico",
+      "name": "Diseñador gráfico",
+      "emoji": "🖼️",
+      "level": "mediocre",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "dj-amateur",
+      "name": "DJ amateur",
+      "emoji": "🌐",
+      "level": "mediocre",
+      "required_experience": 10,
+      "sueldo": 20
+    },
+    {
+      "slug": "boleador-zapatos",
+      "name": "Boleador de zapatos",
+      "emoji": "👞",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "organillero",
+      "name": "Organillero",
+      "emoji": "🎵",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "pintor-amateur",
+      "name": "Pintor amateur",
+      "emoji": "🎨",
+      "level": "mediocre",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "ama-de-casa",
+      "name": "Ama de casa",
+      "emoji": "🏡",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "trabajador-tienda-abarrotes",
+      "name": "Trabajador de tienda de abarrotes",
+      "emoji": "",
+      "level": "mediocre",
+      "required_experience": 1,
+      "sueldo": 10
+    },
+    {
+      "slug": "cantante-callejero",
+      "name": "Cantante callejero",
+      "emoji": "",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "velador-panteon",
+      "name": "Velador de panteón",
+      "emoji": "🕯️",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "probador-camas",
+      "name": "Probador de camas",
+      "emoji": "🛏️",
+      "level": "mediocre",
+      "required_experience": 0,
+      "sueldo": 10
+    },
+    {
+      "slug": "cinepolitos",
+      "name": "Cinepolitos",
+      "emoji": "🎥",
+      "level": "bajo",
+      "required_experience": 10,
+      "sueldo": 20
+    },
+    {
+      "slug": "actor-doblaje",
+      "name": "Actor de doblaje",
+      "emoji": "🎧",
+      "level": "bajo",
+      "required_experience": 30,
+      "sueldo": 60
+    },
+    {
+      "slug": "guardabosques",
+      "name": "Guardabosques",
+      "emoji": "🌲",
+      "level": "bajo",
+      "required_experience": 25,
+      "sueldo": 50
+    },
+    {
+      "slug": "guardia-seguridad",
+      "name": "Guardia de seguridad",
+      "emoji": "🪪",
+      "level": "bajo",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "bartender",
+      "name": "Bartender",
+      "emoji": "🍾",
+      "level": "bajo",
+      "required_experience": 40,
+      "sueldo": 80
+    },
+    {
+      "slug": "deportista-principiante",
+      "name": "Deportista principiante",
+      "emoji": "🏟️",
+      "level": "bajo",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "trabajador-obra",
+      "name": "Trabajador de obra",
+      "emoji": "🏗️",
+      "level": "bajo",
+      "required_experience": 25,
+      "sueldo": 50
+    },
+    {
+      "slug": "cantante-amateur",
+      "name": "Cantante amateur",
+      "emoji": "🎵",
+      "level": "bajo",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "tienda-pequena",
+      "name": "Tienda pequeña",
+      "emoji": "",
+      "level": "bajo",
+      "required_experience": 10,
+      "sueldo": 20
+    },
+    {
+      "slug": "jardinero",
+      "name": "Jardinero",
+      "emoji": "🌹",
+      "level": "bajo",
+      "required_experience": 15,
+      "sueldo": 30
+    },
+    {
+      "slug": "trailero",
+      "name": "Trailero",
+      "emoji": "🚛",
+      "level": "bajo",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "repartidor",
+      "name": "Repartidor",
+      "emoji": "📦",
+      "level": "bajo",
+      "required_experience": 15,
+      "sueldo": 30
+    },
+    {
+      "slug": "panadero",
+      "name": "Panadero",
+      "emoji": "🍞",
+      "level": "bajo",
+      "required_experience": 30,
+      "sueldo": 60
+    },
+    {
+      "slug": "periodista",
+      "name": "Periodista",
+      "emoji": "🗞️",
+      "level": "bajo",
+      "required_experience": 50,
+      "sueldo": 100
+    },
+    {
+      "slug": "burger-king",
+      "name": "Burger King (empleo de entrada)",
+      "emoji": "🍔",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "little-caesars",
+      "name": "Little Caesars (empleo de entrada)",
+      "emoji": "🍕",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "maestro-preescolar",
+      "name": "Maestro de preescolar",
+      "emoji": "✏️",
+      "level": "bajo",
+      "required_experience": 60,
+      "sueldo": 120
+    },
+    {
+      "slug": "cazador",
+      "name": "Cazador",
+      "emoji": "🏹",
+      "level": "bajo",
+      "required_experience": 15,
+      "sueldo": 30
+    },
+    {
+      "slug": "artista-nsfw",
+      "name": "Artista NSFW",
+      "emoji": "🔥",
+      "level": "bajo",
+      "required_experience": 10,
+      "sueldo": 20
+    },
+    {
+      "slug": "mecanico",
+      "name": "Mecánico",
+      "emoji": "🧰",
+      "level": "bajo",
+      "required_experience": 40,
+      "sueldo": 80
+    },
+    {
+      "slug": "radio",
+      "name": "Trabajador de radio",
+      "emoji": "📻",
+      "level": "bajo",
+      "required_experience": 20,
+      "sueldo": 40
+    },
+    {
+      "slug": "guia-turistico",
+      "name": "Guía turístico",
+      "emoji": "",
+      "level": "bajo",
+      "required_experience": 30,
+      "sueldo": 60
+    },
+    {
+      "slug": "salvavidas-parque",
+      "name": "Salvavidas de parque acuático",
+      "emoji": "💧",
+      "level": "bajo",
+      "required_experience": 50,
+      "sueldo": 100
+    },
+    {
+      "slug": "oculista",
+      "name": "Oculista",
+      "emoji": "👓",
+      "level": "bajo",
+      "required_experience": 200,
+      "sueldo": 400
+    },
+    {
+      "slug": "tres-b",
+      "name": "Tres B (cadena)",
+      "emoji": "🏪",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "soriana",
+      "name": "Soriana (cadena)",
+      "emoji": "🏪",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "aurrera",
+      "name": "Aurrera (cadena)",
+      "emoji": "🏪",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "mcdonalds",
+      "name": "McDonald's (empleo de entrada)",
+      "emoji": "🏙",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "dominos",
+      "name": "Domino's (empleo de entrada)",
+      "emoji": "🏙",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "coppel",
+      "name": "Coppel (cadena)",
+      "emoji": "🏪",
+      "level": "bajo",
+      "required_experience": 5,
+      "sueldo": 10
+    },
+    {
+      "slug": "licenciado",
+      "name": "Licenciado",
+      "emoji": "🟥",
+      "level": "medio",
+      "required_experience": 400,
+      "sueldo": 800
+    },
+    {
+      "slug": "minero",
+      "name": "Minero",
+      "emoji": "⛏️",
+      "level": "medio",
+      "required_experience": 300,
+      "sueldo": 600
+    },
+    {
+      "slug": "policia",
+      "name": "Policía",
+      "emoji": "🚓",
+      "level": "medio",
+      "required_experience": 400,
+      "sueldo": 800
+    },
+    {
+      "slug": "militar-novato",
+      "name": "Militar novato",
+      "emoji": "🎖️⭐",
+      "level": "medio",
+      "required_experience": 150,
+      "sueldo": 300
+    },
+    {
+      "slug": "piloto-principiante",
+      "name": "Piloto principiante",
+      "emoji": "✈️",
+      "level": "medio",
+      "required_experience": 500,
+      "sueldo": 1000
+    },
+    {
+      "slug": "club-musica",
+      "name": "Club de música",
+      "emoji": "🎼",
+      "level": "medio",
+      "required_experience": 100,
+      "sueldo": 200
+    },
+    {
+      "slug": "club-teatro",
+      "name": "Club de teatro profesional",
+      "emoji": "🎭",
+      "level": "medio",
+      "required_experience": 600,
+      "sueldo": 1200
+    },
+    {
+      "slug": "animador",
+      "name": "Animador",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 200,
+      "sueldo": 400
+    },
+    {
+      "slug": "bombero",
+      "name": "Bombero",
+      "emoji": "👩‍🚒",
+      "level": "medio",
+      "required_experience": 400,
+      "sueldo": 800
+    },
+    {
+      "slug": "maestro",
+      "name": "Maestro",
+      "emoji": "👨‍🏫",
+      "level": "medio",
+      "required_experience": 500,
+      "sueldo": 1000
+    },
+    {
+      "slug": "militar",
+      "name": "Militar",
+      "emoji": "🪖",
+      "level": "medio",
+      "required_experience": 400,
+      "sueldo": 800
+    },
+    {
+      "slug": "programador",
+      "name": "Programador",
+      "emoji": "👨‍💻",
+      "level": "medio",
+      "required_experience": 600,
+      "sueldo": 1200
+    },
+    {
+      "slug": "cocinero",
+      "name": "Cocinero",
+      "emoji": "👨‍🍳",
+      "level": "medio",
+      "required_experience": 300,
+      "sueldo": 600
+    },
+    {
+      "slug": "taquero",
+      "name": "Taquero",
+      "emoji": "🌮",
+      "level": "medio",
+      "required_experience": 100,
+      "sueldo": 200
+    },
+    {
+      "slug": "luchador",
+      "name": "Luchador",
+      "emoji": "🥊",
+      "level": "medio",
+      "required_experience": 300,
+      "sueldo": 600
+    },
+    {
+      "slug": "creador-contenido",
+      "name": "Creador de contenido",
+      "emoji": "📹",
+      "level": "medio",
+      "required_experience": 200,
+      "sueldo": 400
+    },
+    {
+      "slug": "restaurante",
+      "name": "Restaurante (negocio)",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 300,
+      "sueldo": 600
+    },
+    {
+      "slug": "explorador",
+      "name": "Explorador",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 350,
+      "sueldo": 700
+    },
+    {
+      "slug": "supervisor-calidad",
+      "name": "Supervisor de calidad",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 450,
+      "sueldo": 900
+    },
+    {
+      "slug": "salvavidas-mar",
+      "name": "Salvavidas de mar",
+      "emoji": "🌊",
+      "level": "medio",
+      "required_experience": 400,
+      "sueldo": 800
+    },
+    {
+      "slug": "biologo-marino",
+      "name": "Biólogo marino",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 500,
+      "sueldo": 1000
+    },
+    {
+      "slug": "artista-furry",
+      "name": "Artista furry",
+      "emoji": "",
+      "level": "medio",
+      "required_experience": 150,
+      "sueldo": 300
+    },
+    {
+      "slug": "quimico",
+      "name": "Químico",
+      "emoji": "🧪",
+      "level": "medio",
+      "required_experience": 600,
+      "sueldo": 1200
+    },
+    {
+      "slug": "inversionista",
+      "name": "Inversionista",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 2000,
+      "sueldo": 4000
+    },
+    {
+      "slug": "paleontologo",
+      "name": "Paleontólogo",
+      "emoji": "🦴",
+      "level": "alto",
+      "required_experience": 3000,
+      "sueldo": 6000
+    },
+    {
+      "slug": "coronel-militar",
+      "name": "Coronel militar",
+      "emoji": "🎖️",
+      "level": "alto",
+      "required_experience": 4000,
+      "sueldo": 8000
+    },
+    {
+      "slug": "capitan-avion",
+      "name": "Capitán de avión",
+      "emoji": "✈️",
+      "level": "alto",
+      "required_experience": 5000,
+      "sueldo": 10000
+    },
+    {
+      "slug": "operador-planta-nuclear",
+      "name": "Operador de planta nuclear",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 7000,
+      "sueldo": 14000
+    },
+    {
+      "slug": "fisico-matematico",
+      "name": "Físico matemático",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 6000,
+      "sueldo": 12000
+    },
+    {
+      "slug": "astronauta",
+      "name": "Astronauta",
+      "emoji": "👩‍🚀",
+      "level": "alto",
+      "required_experience": 10000,
+      "sueldo": 20000
+    },
+    {
+      "slug": "traficante-ilegal",
+      "name": "Traficante ilegal",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 5000,
+      "sueldo": 10000
+    },
+    {
+      "slug": "presidente",
+      "name": "Presidente",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 15000,
+      "sueldo": 30000
+    },
+    {
+      "slug": "juez",
+      "name": "Juez",
+      "emoji": "📚",
+      "level": "alto",
+      "required_experience": 8000,
+      "sueldo": 16000
+    },
+    {
+      "slug": "onu",
+      "name": "ONU",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 10000,
+      "sueldo": 20000
+    },
+    {
+      "slug": "artista-profesional",
+      "name": "Artista profesional",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 4000,
+      "sueldo": 8000
+    },
+    {
+      "slug": "actor-hollywood",
+      "name": "Actor de Hollywood",
+      "emoji": "🎬",
+      "level": "alto",
+      "required_experience": 5000,
+      "sueldo": 10000
+    },
+    {
+      "slug": "bailarin-exotico",
+      "name": "Bailarín exótico",
+      "emoji": "💃",
+      "level": "alto",
+      "required_experience": 2500,
+      "sueldo": 5000
+    },
+    {
+      "slug": "manager-estrellas",
+      "name": "Manager de estrellas",
+      "emoji": "🌟",
+      "level": "alto",
+      "required_experience": 4500,
+      "sueldo": 9000
+    },
+    {
+      "slug": "jugador-olimpico",
+      "name": "Jugador olímpico",
+      "emoji": "🥇",
+      "level": "alto",
+      "required_experience": 8000,
+      "sueldo": 16000
+    },
+    {
+      "slug": "mafioso",
+      "name": "Mafioso",
+      "emoji": "🕶️",
+      "level": "alto",
+      "required_experience": 5000,
+      "sueldo": 10000
+    },
+    {
+      "slug": "cartel",
+      "name": "Cartel",
+      "emoji": "💀",
+      "level": "alto",
+      "required_experience": 7000,
+      "sueldo": 14000
+    },
+    {
+      "slug": "enfermero",
+      "name": "Enfermer@",
+      "emoji": "💊",
+      "level": "alto",
+      "required_experience": 3000,
+      "sueldo": 6000
+    },
+    {
+      "slug": "cirujano",
+      "name": "Cirujano",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 9000,
+      "sueldo": 18000
+    },
+    {
+      "slug": "cirujano-plastico",
+      "name": "Cirujano plástico",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 9000,
+      "sueldo": 18000
+    },
+    {
+      "slug": "empresario",
+      "name": "Empresario",
+      "emoji": "📈",
+      "level": "alto",
+      "required_experience": 5000,
+      "sueldo": 10000
+    },
+    {
+      "slug": "bienes-raices",
+      "name": "Bienes raíces",
+      "emoji": "🏡",
+      "level": "alto",
+      "required_experience": 3000,
+      "sueldo": 6000
+    },
+    {
+      "slug": "deportista-profesional",
+      "name": "Deportista profesional",
+      "emoji": "",
+      "level": "alto",
+      "required_experience": 6000,
+      "sueldo": 12000
+    },
+    {
+      "slug": "rey",
+      "name": "Rey",
+      "emoji": "👑",
+      "level": "alto",
+      "required_experience": 20000,
+      "sueldo": 40000
+    },
+    {
+      "slug": "banco",
+      "name": "Banco",
+      "emoji": "🏦",
+      "level": "alto",
+      "required_experience": 10000,
+      "sueldo": 20000
+    }
+  ]
+}

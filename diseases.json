@@ -1,0 +1,104 @@
+{
+  "diseases": [
+    {
+      "slug": "resfriado",
+      "name": "Resfriado común",
+      "severity": "bajo",
+      "health_loss": 2,
+      "daily_health_loss": 1,
+      "duration_days": 2,
+      "treatment_cost": 20,
+      "description": "Molestias leves, baja energía. Se recupera rápido."
+    },
+    {
+      "slug": "gripe",
+      "name": "Gripe",
+      "severity": "medio",
+      "health_loss": 8,
+      "daily_health_loss": 3,
+      "duration_days": 3,
+      "treatment_cost": 50,
+      "description": "Fiebre y cansancio. Mejora al tratarse."
+    },
+    {
+      "slug": "intoxicacion",
+      "name": "Intoxicación alimentaria",
+      "severity": "medio",
+      "health_loss": 10,
+      "daily_health_loss": 4,
+      "duration_days": 2,
+      "treatment_cost": 60,
+      "description": "Dolor estomacal y deshidratación; requiere atención."
+    },
+    {
+      "slug": "neumonia",
+      "name": "Neumonía",
+      "severity": "alto",
+      "health_loss": 20,
+      "daily_health_loss": 8,
+      "duration_days": 5,
+      "treatment_cost": 200,
+      "description": "Complicación grave; tratamiento caro recomendado."
+    },
+    {
+      "slug": "fractura",
+      "name": "Fractura",
+      "severity": "alto",
+      "health_loss": 15,
+      "daily_health_loss": 5,
+      "duration_days": 7,
+      "treatment_cost": 300,
+      "description": "Lesión física que limita acciones; necesita reparación médica."
+    },
+    {
+      "slug": "corte_infectado",
+      "name": "Corte infectado",
+      "severity": "medio",
+      "health_loss": 6,
+      "daily_health_loss": 4,
+      "duration_days": 4,
+      "treatment_cost": 80,
+      "description": "Herida que se infectó; tratar pronto para evitar empeorar."
+    },
+    {
+      "slug": "gastroenteritis",
+      "name": "Gastroenteritis",
+      "severity": "medio",
+      "health_loss": 8,
+      "daily_health_loss": 3,
+      "duration_days": 3,
+      "treatment_cost": 60,
+      "description": "Vómitos y diarrea; reduce salud rápidamente si no se trata."
+    },
+    {
+      "slug": "alergia_severa",
+      "name": "Alergia severa",
+      "severity": "medio",
+      "health_loss": 10,
+      "daily_health_loss": 2,
+      "duration_days": 3,
+      "treatment_cost": 70,
+      "description": "Reacción fuerte a algo; tratamiento reduce efectos."
+    },
+    {
+      "slug": "golpe_calor",
+      "name": "Golpe de calor",
+      "severity": "medio",
+      "health_loss": 12,
+      "daily_health_loss": 3,
+      "duration_days": 2,
+      "treatment_cost": 50,
+      "description": "Exposición al sol; recuperarse requiere reposo/atención."
+    },
+    {
+      "slug": "infeccion_seria",
+      "name": "Infección seria",
+      "severity": "alto",
+      "health_loss": 18,
+      "daily_health_loss": 7,
+      "duration_days": 5,
+      "treatment_cost": 220,
+      "description": "Infección que requiere intervención médica urgente."
+    }
+  ]
+}

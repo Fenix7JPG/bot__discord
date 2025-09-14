@@ -1,0 +1,84 @@
+{
+  "1385034045494268064": {
+    "dinero": 2234,
+    "experiencia": 57,
+    "date_job": null,
+    "job": null,
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "748220015052062820": {
+    "dinero": 24,
+    "experiencia": 116,
+    "job": "lavacoches",
+    "salud": 48,
+    "enfermedad": null,
+    "date_job": "2025-09-01T16:02:18.777534+00:00",
+    "disease": "fiebre",
+    "date_disease": "2025-09-01T16:02:06.377437+00:00"
+  },
+  "1198183209989586984": {
+    "dinero": 0,
+    "experiencia": 13,
+    "date_job": "2025-09-06T19:47:27.735426+00:00",
+    "job": "probador de camas",
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "958196738857009163": {
+    "dinero": 0,
+    "experiencia": 10,
+    "date_job": "2025-09-06T20:12:14.093182+00:00",
+    "job": "Velador de panteón",
+    "salud": 91,
+    "date_disease": "2025-09-06T20:12:14.093182+00:00",
+    "disease": "fatiga severa"
+  },
+  "775899991918116865": {
+    "dinero": 9,
+    "experiencia": 9,
+    "date_job": "2025-09-06T20:38:19.771964+00:00",
+    "job": "Cantante callejero",
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "1026638242080104559": {
+    "dinero": 0,
+    "experiencia": 42,
+    "date_job": "2025-09-12T02:09:59.293573+00:00",
+    "job": "dj-amateur",
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "1337161446328500247": {
+    "dinero": 24,
+    "experiencia": 9,
+    "date_job": "2025-09-06T20:58:00.805877+00:00",
+    "job": "Barredor de calles",
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "1289056743007059968": {
+    "dinero": 0,
+    "experiencia": 0,
+    "date_job": null,
+    "job": null,
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  },
+  "1244759222974152808": {
+    "dinero": 0,
+    "experiencia": 0,
+    "date_job": null,
+    "job": null,
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
+  }
+}

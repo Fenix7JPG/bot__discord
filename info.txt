@@ -1,0 +1,17 @@
+trabajos
+
+mediocre  5 - 100
+bajos 100 - 150
+medios 150 - 230
+altos 230 - 500
+
+si no se hace /work por al menos 3 dias
+	te despiden o te bajan el 15% del sueldo
+
+
+
+
+Además de querer un sistema de slut (ya sabes eso), y que si lo haces mucho haya una probabilidad 
+alta de que contraigas una enfermedad its, y tendras que ir al hospital que costara entre 100 a 700 
+dependiendo de la enfermedad, y si no te curas y no le das importancia vas perdiendo ganancias
+en conclusion aqui , pues es cuando haces /work mas de una vez al dia   y otro comando para /curarse o algo asi por ahora
