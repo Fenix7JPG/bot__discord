@@ -6,7 +6,6 @@ audioop-lts==0.2.2
 blinker==1.9.0
 click==8.2.1
 colorama==0.4.6
-discord.py==2.5.2
 Flask==3.1.1
 frozenlist==1.7.0
 idna==3.10
