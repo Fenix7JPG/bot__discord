@@ -20,3 +20,4 @@ discord.py==2.6.3
 yt-dlp==2025.9.5
 aiohttp==3.12.15
 PyNaCl==1.6.0
+cohere==5.18.0
