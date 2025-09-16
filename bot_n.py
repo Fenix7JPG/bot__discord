@@ -14,9 +14,14 @@ import aiohttp
 import subprocess
 import urllib.parse
 import io
-
+import cohere
+from ia import IA
 from pag import keep_alive
 keep_alive()
+
+
+DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+COHERE_API_KEY = os.environ.get("COHERE_API_KEY")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -1071,530 +1076,251 @@ async def cat(interaction: discord.Interaction):
 async def raidear(interaction: discord.Interaction):
     await interaction.response.send_message("...", ephemeral=True)
 
-# ---------------- CONFIG ----------------
-# 1) RUTA AL EJECUTABLE (usa la ruta AL .exe)
-# Cambia la ruta a la tuya: debe apuntar a ffmpeg.exe
-ffmpeg_exe = r"D:\Bryan\Proyectos\Proy_Python\bot_discord_denegados\ffmpeg\bin\ffmpeg.exe"
-
-# 2) RUTA A LA CARPETA bin (para yt-dlp -> ffmpeg_location)
-# Debe ser la carpeta que contiene ffmpeg.exe y ffprobe.exe
-ffmpeg_dir = r"D:\Bryan\Proyectos\Proy_Python\bot_discord_denegados\ffmpeg\bin"
-
-
-
-# ---------------- CONFIG ----------------
-# Límite de subida (bytes). Cambia si tu bot tiene mayor límite.
-DISCORD_UPLOAD_LIMIT = 8 * 1024 * 1024  # 8 MB
-# ----------------------------------------
-
-
-
-def sanitize_filename(s: str) -> str:
-    s = s.strip()
-    s = re.sub(r'[\\/*?:"<>|]', '_', s)
-    s = s.replace(' ', '_')
-    return s[:200]
-
-
-def find_audio_url(info: dict):
-    """Extrae la URL directa de audio si existe en la info de yt-dlp."""
-    if info.get('requested_formats'):
-        for f in info['requested_formats']:
-            if f.get('acodec') and f.get('acodec') != 'none':
-                return f.get('url')
-    if info.get('formats'):
-        audio_formats = [f for f in info['formats'] if f.get('acodec') and f.get('acodec') != 'none']
-        if audio_formats:
-            best = max(audio_formats, key=lambda f: (f.get('abr') or f.get('tbr') or 0))
-            return best.get('url')
-    if info.get('url'):
-        return info.get('url')
-    return None
-
-
-async def ffmpeg_pipe_to_mp3(audio_url: str, ffmpeg_executable: str) -> io.BytesIO:
-    """
-    Ejecuta ffmpeg para convertir audio_url a MP3 en memoria.
-    Incluye opciones para aceptar HLS/protocols y headers simples.
-    """
-    if not os.path.exists(ffmpeg_executable):
-        raise FileNotFoundError(f"No existe ffmpeg en: {ffmpeg_executable}")
-
-    # Opciones añadidas para manejar HLS/streams y URLs con extensiones 'raras'
-    cmd = [
-        ffmpeg_executable,
-        '-hide_banner', '-loglevel', 'error',
-        '-allowed_extensions', 'ALL',
-        '-protocol_whitelist', 'file,http,https,tcp,tls',
-        '-headers', 'User-Agent: Mozilla/5.0 (Windows NT) FFmpeg\r\n',
-        '-i', audio_url,
-        '-vn',
-        '-f', 'mp3',
-        '-ab', '192k',
-        'pipe:1'
-    ]
-
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-    except PermissionError as e:
-        raise PermissionError(f"Acceso denegado al intentar ejecutar ffmpeg.exe: {e}")
-    except Exception as e:
-        raise RuntimeError(f"No se pudo iniciar ffmpeg: {e}")
-
-    buffer = io.BytesIO()
-    total = 0
-    try:
-        while True:
-            chunk = await proc.stdout.read(64 * 1024)
-            if not chunk:
-                break
-            buffer.write(chunk)
-            total += len(chunk)
-            # safety cap
-            if total > 500 * 1024 * 1024:
-                proc.kill()
-                await proc.wait()
-                raise RuntimeError("El archivo generado por ffmpeg supera el límite de seguridad (500 MB).")
-        await proc.wait()
-        if proc.returncode != 0:
-            stderr = (await proc.stderr.read()).decode(errors='ignore')
-            raise RuntimeError(f"ffmpeg error (code {proc.returncode}): {stderr[:1500]}")
-        buffer.seek(0)
-        return buffer
-    finally:
-        try:
-            proc.stderr.close()
-        except Exception:
-            pass
-
-
-@bot.tree.command(name="ytmp3", description="Enviar audio MP3 de YouTube sin guardar en disco (intento en memoria).")
-async def descargar_youtube(interaction: discord.Interaction, query: str):
-    await interaction.response.defer()
-
-    # Normalizar query
-    if "youtube.com" not in query and "youtu.be" not in query:
-        query_to_fetch = f"ytsearch:{query}"
-    else:
-        query_to_fetch = query
-
-    # 1) Extraer info
-    try:
-        info_opts = {'quiet': True, 'no_warnings': True, 'noplaylist': True }
-        with yt_dlp.YoutubeDL(info_opts) as ydl:
-            info = ydl.extract_info(query_to_fetch, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            title = sanitize_filename(info.get('title', 'audio'))
-            video_page_url = info.get('webpage_url', query_to_fetch)
-    except Exception as e:
-        await interaction.followup.send(f"Error al obtener información del video: {e}")
-        return
-
-    # 2) Buscar URL directa de audio
-    audio_url = find_audio_url(info)
-
-    # 3) Reintentar con 'bestaudio' si no se encontró
-    if not audio_url:
-        try:
-            with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'noplaylist': True, 'format': 'bestaudio[protocol!=m3u8]/best[protocol!=m3u8]'}) as ydl2:
-                info2 = ydl2.extract_info(video_page_url, download=False)
-                if 'entries' in info2:
-                    info2 = info2['entries'][0]
-                audio_url = find_audio_url(info2)
-                if audio_url:
-                    info = info2
-        except Exception:
-            audio_url = None
-
-    # 4) Si tenemos audio_url, intentar ffmpeg -> mp3 en memoria (con opciones HLS)
-    if audio_url:
-        try:
-            buffer = await ffmpeg_pipe_to_mp3(audio_url, ffmpeg_exe)
-            size_bytes = buffer.getbuffer().nbytes
-            if size_bytes > DISCORD_UPLOAD_LIMIT:
-                mb = size_bytes / (1024 * 1024)
-                await interaction.followup.send(
-                    f"El MP3 en memoria pesa {mb:.2f} MB y supera el límite de Discord ({DISCORD_UPLOAD_LIMIT/(1024*1024):.0f} MB). Intentando fallback..."
-                )
-                # seguir a fallback
-            else:
-                filename = f"{title}.mp3"
-                await interaction.followup.send(file=discord.File(fp=buffer, filename=filename))
-                return
-        except PermissionError as e:
-            await interaction.followup.send(f"Error: permiso denegado al ejecutar ffmpeg.exe. Revisa la ruta y permisos.\n{e}")
-            return
-        except Exception as e:
-            # Mostrar el error (útil para debug) y continuar al fallback
-            pass
-            #await interaction.followup.send(f"Error al convertir/enviar audio desde URL directa: {e}\nHaciendo fallback a descarga temporal...")
-            # continuar a fallback
-
-    # 5) FALLBACK: descargar a tempfile con yt-dlp y postprocesar con ffmpeg_dir
-    try:
-        tmpdir = tempfile.mkdtemp(prefix="ytmp3_")
-        out_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
-        ydl_dl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': out_template,
-            'noplaylist': True,
-            'quiet': True,
-            'ffmpeg_location': ffmpeg_dir,
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
-
-        with yt_dlp.YoutubeDL(ydl_dl_opts) as ydl:
-            ydl.download([video_page_url])
-
-        mp3_file = None
-        for f in os.listdir(tmpdir):
-            if f.lower().endswith('.mp3'):
-                mp3_file = os.path.join(tmpdir, f)
-                break
-
-        if not mp3_file or not os.path.exists(mp3_file):
-            await interaction.followup.send("Fallback: no se encontró el MP3 generado por yt-dlp.")
-            # limpiar
-            try:
-                for f in os.listdir(tmpdir):
-                    os.remove(os.path.join(tmpdir, f))
-                os.rmdir(tmpdir)
-            except Exception:
-                pass
-            return
-
-        size_bytes = os.path.getsize(mp3_file)
-        if size_bytes > DISCORD_UPLOAD_LIMIT:
-            mb = size_bytes / (1024 * 1024)
-            await interaction.followup.send(
-                f"El MP3 descargado pesa {mb:.2f} MB y supera el límite de Discord ({DISCORD_UPLOAD_LIMIT/(1024*1024):.0f} MB). Considerá reducir la calidad o subirlo a un host externo."
-            )
-            # limpiar y salir
-            try:
-                os.remove(mp3_file)
-                os.rmdir(tmpdir)
-            except Exception:
-                pass
-            return
-
-        await interaction.followup.send(file=discord.File(mp3_file))
-    except Exception as e:
-        await interaction.followup.send(f"Error en fallback de descarga: {e}")
-    finally:
-        # limpieza
-        try:
-            if 'mp3_file' in locals() and mp3_file and os.path.exists(mp3_file):
-                os.remove(mp3_file)
-        except Exception:
-            pass
-        try:
-            if os.path.exists(tmpdir):
-                # borrar archivos residuales
-                for f in os.listdir(tmpdir):
-                    try:
-                        os.remove(os.path.join(tmpdir, f))
-                    except Exception:
-                        pass
-                os.rmdir(tmpdir)
-        except Exception:
-            pass
-
-
-@bot.tree.command(name="check_ffmpeg", description="Verifica que ffmpeg exista y sea ejecutable.")
-async def check_ffmpeg(interaction: discord.Interaction):
-    try:
-        proc = subprocess.run([ffmpeg_exe, "-version"], capture_output=True, text=True, check=True)
-        first = proc.stdout.splitlines()[0] if proc.stdout else "ffmpeg -> (sin salida)"
-        await interaction.response.send_message(f"ffmpeg encontrado: {first}")
-    except FileNotFoundError:
-        await interaction.response.send_message(f"No se encontró ffmpeg en: {ffmpeg_exe}")
-    except PermissionError:
-        await interaction.response.send_message(f"Acceso denegado al ejecutar: {ffmpeg_exe}. Revisa permisos/antivirus.")
-    except subprocess.CalledProcessError as e:
-        await interaction.response.send_message(f"ffmpeg existe pero devolvió error: {e}")
-    except Exception as e:
-        await interaction.response.send_message(f"Error al comprobar ffmpeg: {e}")
 
 # RULETA RUSA
 
+# Añade esto a tu bot (asumiendo que ya tienes `bot` definido y funcionando
+# con @bot.tree.command como en tu ejemplo `d20`).
 import discord
 from discord import app_commands
-import asyncio
 import random
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+import asyncio
 
-# --- Ajustes ---
-JOIN_EMOJI = "✋"        # emoji para unirse
-TURN_TIMEOUT = 60       # segundos para que cada jugador use /dispararse
-DEATH_PROBABILITY = 1/6 # probabilidad de morir (ruleta de 6 cámaras)
-# ----------------
+# Guarda juegos por canal para permitir múltiples juegos simultáneos en distintos canales
+games_by_channel: dict[int, "RussianRouletteGame"] = {}
 
-@dataclass
-class RussianRouletteGame:
-    guild_id: int
-    channel_id: int
-    creator_id: int
-    join_msg_id: int
-    players: List[int] = field(default_factory=list)     # ordered list of user IDs
-    alive: List[int] = field(default_factory=list)       # alive player IDs
-    current_index: int = 0
-    started: bool = False
-    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    winner_declared: bool = False
+class RussianRouletteView(discord.ui.View):
+    def __init__(self, game: "RussianRouletteGame"):
+        super().__init__(timeout=None)
+        self.game = game
 
-# Map channel_id -> game
-active_games: Dict[int, RussianRouletteGame] = {}
-
-# asumo que 'bot' ya está definido: bot = discord.Client(...) o commands.Bot(...)
-# Si usas commands.Bot named 'bot' conviértelo a 'bot' en tu archivo principal.
-# Ejemplo mínimo: bot = discord.Bot(intents=intents)
-# A continuación, usamos app command decorators sobre ese 'bot'.
-
-@bot.tree.command(name="ruleta_rusa", description="Crea una ruleta rusa y permite a otros unirse reaccionando.")
-async def ruleta_rusa(interaction: discord.Interaction):
-    channel = interaction.channel
-    author = interaction.user
-
-    if channel.id in active_games:
-        await interaction.response.send_message("Ya hay una ruleta activa en este canal. Usa /ruleta_cancel para cancelarla o espera que termine.", ephemeral=True)
-        return
-
-    # Crear mensaje público de invitación
-    embed = discord.Embed(title="🧨 Ruleta Rusa",
-                          description=f"**Creador:** {author.mention}\nReacciona con {JOIN_EMOJI} para unirte.\nCuando estés listo, el creador usará `/ruleta_start` para comenzar.",
-                          color=discord.Color.dark_red())
-    msg = await interaction.channel.send(embed=embed)
-
-    # Añadir reacción para unirse
-    try:
-        await msg.add_reaction(JOIN_EMOJI)
-    except Exception:
-        # si falla la reacción no es crítico
-        pass
-
-    # crear objeto partida
-    game = RussianRouletteGame(
-        guild_id=interaction.guild_id,
-        channel_id=channel.id,
-        creator_id=author.id,
-        join_msg_id=msg.id
-    )
-    active_games[channel.id] = game
-
-    # Responder públicamente que la partida fue creada y enviar instrucciones al creador en ephemeral
-    await interaction.response.send_message(f"Ruleta creada en {channel.mention}. Esperando jugadores... (mensaje de unión enviado).", ephemeral=False)
-    await interaction.followup.send("Invita a otros a reaccionar en el mensaje público. Cuando todos estén listos, ejecuta `/ruleta_start` (solo el creador puede iniciarla).", ephemeral=True)
-
-
-@bot.tree.command(name="ruleta_start", description="Inicia la ruleta rusa (solo el creador puede iniciar).")
-async def ruleta_start(interaction: discord.Interaction):
-    channel = interaction.channel
-    user = interaction.user
-
-    if channel.id not in active_games:
-        await interaction.response.send_message("No hay ninguna ruleta activa en este canal.", ephemeral=True)
-        return
-    game = active_games[channel.id]
-
-    if user.id != game.creator_id and not user.guild_permissions.manage_guild and not user.guild_permissions.administrator:
-        await interaction.response.send_message("Solo el creador o un administrador puede iniciar la partida.", ephemeral=True)
-        return
-
-    if game.started:
-        await interaction.response.send_message("La ruleta ya fue iniciada.", ephemeral=True)
-        return
-
-    # Recuperar mensaje de unión y los usuarios que reaccionaron
-    try:
-        join_msg = await channel.fetch_message(game.join_msg_id)
-    except Exception:
-        await interaction.response.send_message("No pude recuperar el mensaje de unión (fue eliminado?). Cancela y crea otra ruleta.", ephemeral=True)
-        return
-
-    # Encontrar la reacción
-    reaction = None
-    for r in join_msg.reactions:
-        if (str(r.emoji) == JOIN_EMOJI):
-            reaction = r
-            break
-
-    players = []
-    if reaction is not None:
-        # reaction.users() es un async iterator
-        users = [u async for u in reaction.users()]
-        # quitar bots
-        users = [u for u in users if not u.bot]
-        # mantén el orden tal como aparece (puede ser arbitrario)
-        players = [u.id for u in users]
-
-    # Si no hay suficientes jugadores
-    if len(players) < 2:
-        await interaction.response.send_message("Se necesitan al menos 2 jugadores para iniciar la ruleta. Haz que más usuarios reaccionen con el emoji de unión.", ephemeral=True)
-        return
-
-    # Inicializar players y alive
-    game.players = players.copy()
-    game.alive = players.copy()
-    game.started = True
-    game.current_index = random.randrange(len(game.alive))
-
-    # Mensaje anunciando inicio y primer jugador
-    first_player_id = game.alive[game.current_index]
-    first_member = interaction.guild.get_member(first_player_id)
-    await interaction.response.send_message(f"🔔 La ruleta ha comenzado! Jugadores: {', '.join(f'<@{p}>' for p in game.alive)}\n➡️ Empieza: {first_member.mention}\n{first_member.mention}, usa `/dispararse` para tirar.", ephemeral=False)
-
-    # Enviar un mensaje ephemeral al primer jugador con instrucciones
-    try:
-        await interaction.followup.send(f"Tu turno: escribe `/dispararse` en este canal para tirar. Tienes {TURN_TIMEOUT} segundos antes de que se salte tu turno.", ephemeral=True, user=first_member)
-    except Exception:
-        # si no podemos enviar ephemeral personalizado por limitaciones, enviar al invocador (no crítico)
-        pass
-
-
-@bot.tree.command(name="dispararse", description="Dispararse en la ruleta rusa cuando sea tu turno.")
-async def dispararse(interaction: discord.Interaction):
-    channel = interaction.channel
-    user = interaction.user
-
-    if channel.id not in active_games:
-        await interaction.response.send_message("No hay ninguna ruleta activa en este canal.", ephemeral=True)
-        return
-    game = active_games[channel.id]
-
-    async with game.lock:
-        if not game.started:
-            await interaction.response.send_message("La partida aún no ha sido iniciada.", ephemeral=True)
-            return
-
-        if user.id not in game.alive:
-            await interaction.response.send_message("No estás vivo/en la partida o ya fuiste eliminado.", ephemeral=True)
-            return
-
-        # comprobar si es el turno del usuario
-        if game.alive[game.current_index] != user.id:
-            await interaction.response.send_message("No es tu turno. Espera a que el bot diga que es tu turno.", ephemeral=True)
-            return
-
-        # Simular disparo
-        # Puedes personalizar la probabilidad; por defecto 1/6
-        muerto = random.random() < DEATH_PROBABILITY
-
-        if muerto:
-            # eliminar jugador actual
-            eliminated_id = user.id
-            eliminated_mention = user.mention
-            # quitar de alive
-            try:
-                idx = game.alive.index(eliminated_id)
-                game.alive.pop(idx)
-                # ajustar current_index: si eliminado era antes en lista, current_index permanece apuntando al siguiente
-                if idx < game.current_index:
-                    game.current_index -= 1
-                # si current_index quedó fuera de rango (p.ej. último eliminado), rewrap
-                if game.current_index >= len(game.alive) and len(game.alive) > 0:
-                    game.current_index = game.current_index % len(game.alive)
-            except ValueError:
-                # no estaba en alive (debería haberse descartado antes)
-                pass
-
-            await interaction.response.send_message(f"💥 **BANG!** {eliminated_mention} ha sido eliminado.", ephemeral=False)
+    @discord.ui.button(label="Unirse", style=discord.ButtonStyle.success, custom_id="rr_join")
+    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        added = await self.game.add_player(interaction.user)
+        if added:
+            # Edita el mensaje de la vista para mostrar jugadores actuales
+            await interaction.response.edit_message(content=self.game.join_message_text(), view=self)
         else:
-            # sobrevivió -> pasar turno
-            await interaction.response.send_message(f"🔫 Click. {user.mention} sobrevive.", ephemeral=False)
-            # pasar al siguiente jugador vivo
-            if len(game.alive) > 0:
-                game.current_index = (game.current_index + 1) % len(game.alive)
+            await interaction.response.send_message("Ya estás en la lista o el juego ya empezó.", ephemeral=True)
 
-        # Verificar si queda 1 jugador -> declarar ganador
-        if len(game.alive) == 1 and not game.winner_declared:
-            winner_id = game.alive[0]
-            game.winner_declared = True
-            await channel.send(f"🏆 ¡Victoria! <@{winner_id}> es el último en pie. La ruleta termina.")
-            # limpiar la partida
-            del active_games[channel.id]
+    @discord.ui.button(label="Abandonar", style=discord.ButtonStyle.danger, custom_id="rr_leave")
+    async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        removed = await self.game.remove_player(interaction.user)
+        if removed:
+            await interaction.response.edit_message(content=self.game.join_message_text(), view=self)
+        else:
+            await interaction.response.send_message("No estabas en la lista o el juego ya empezó.", ephemeral=True)
+
+    @discord.ui.button(label="Empezar", style=discord.ButtonStyle.primary, custom_id="rr_start")
+    async def start_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.game.started:
+            await interaction.response.send_message("El juego ya empezó.", ephemeral=True)
+            return
+        if len(self.game.players) < 2:
+            await interaction.response.send_message("Se necesitan al menos 2 jugadores para empezar.", ephemeral=True)
             return
 
-        # Si no hay jugadores (caso extremo), cancelar
-        if len(game.alive) == 0:
-            await channel.send("Todos fueron eliminados (caso raro). No hay ganador.")
-            del active_games[channel.id]
+        # Deshabilita botones para evitar cambios durante la partida
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(content=self.game.join_message_text(starting=True), view=self)
+
+        # Lanzar la partida en background
+        asyncio.create_task(self.game.run_game())
+
+class RussianRouletteGame:
+    def __init__(self, channel: discord.TextChannel, initiator: discord.Member):
+        self.channel = channel
+        self.players: list[discord.Member] = []
+        self.started = False
+        # tambor: lista de 6, True = bala
+        self.chambers = [False]*6
+        self.current_chamber_index = 0  # índice en el tambor (0..5)
+        self.current_player_idx = 0     # índice en self.players
+        self.reset_event = asyncio.Event()  # para resetear countdown
+        self.countdown_active = False
+        self.initiator = initiator
+        self.view_message: discord.Message | None = None
+
+    def join_message_text(self, starting: bool = False) -> str:
+        lines = ["**— RULETA RUSA —**",
+                 "Pulsa **Unirse** para entrar o **Abandonar** para salir."]
+        if not self.players:
+            lines.append("\n**Jugadores (0):** (aún nadie)")
+        else:
+            names = ", ".join(p.display_name for p in self.players)
+            lines.append(f"\n**Jugadores ({len(self.players)}):** {names}")
+        if starting:
+            lines.append("\n> El juego ha comenzado. ¡Suerte!")
+        return "\n".join(lines)
+
+    async def add_player(self, user: discord.User) -> bool:
+        if self.started:
+            return False
+        if any(p.id == user.id for p in self.players):
+            return False
+        # intentar obtener Member si es posible
+        member = user if isinstance(user, discord.Member) else await self.channel.guild.fetch_member(user.id)
+        self.players.append(member)
+        return True
+
+    async def remove_player(self, user: discord.User) -> bool:
+        if self.started:
+            return False
+        for p in self.players:
+            if p.id == user.id:
+                self.players.remove(p)
+                return True
+        return False
+
+    def _place_bullet(self):
+        self.chambers = [False]*6
+        idx = random.randrange(6)
+        self.chambers[idx] = True
+        self.current_chamber_index = 0  # empezamos por la cámara 0 de la lista
+        # Nota: la "posición" relativa se recorre en cada disparo
+
+    async def run_game(self):
+        # marca inicio
+        self.started = True
+        # si por alguna razón ya no hay suficientes jugadores, termina
+        if len(self.players) < 2:
+            await self.channel.send("No hay suficientes jugadores. Juego cancelado.")
+            self.cleanup()
             return
 
-        # Anunciar siguiente turno y enviar instrucciones ephemeral al jugador
-        next_player_id = game.alive[game.current_index]
-        next_member = channel.guild.get_member(next_player_id)
-        await channel.send(f"➡️ Turno de {next_member.mention}. Usa `/dispararse` (tienes {TURN_TIMEOUT}s).")
+        # orden de juego: ya por orden de ingreso
+        await self.channel.send("Orden de juego:\n" + "\n".join(f"{i+1}. {p.mention}" for i, p in enumerate(self.players)))
 
-        # Enviar ephemeral instrucción al siguiente jugador (si posible)
+        # preparar tambor
+        self._place_bullet()
+
+        # ciclo principal: hasta que quede 1 jugador o se cancele
+        while len(self.players) > 1:
+            current_player = self.players[self.current_player_idx % len(self.players)]
+            # Anunciar turno y esperar 5s con posibilidad de reset por mensajes
+            warn_msg = await self.channel.send(f"🔫 **Turno de {current_player.mention}** — se prepara para disparar... (5s)")
+            # Esperar el countdown con resets
+            await self._wait_with_resets()
+
+            # Resolver disparo: revisar la cámara actual
+            chamber_has_bullet = self.chambers[self.current_chamber_index]
+            if chamber_has_bullet:
+                # Muere
+                await self.channel.send(f"💥 **{current_player.mention}** se ha disparado. Ha muerto.")
+                # remover jugador
+                self.players = [p for p in self.players if p.id != current_player.id]
+                # si queda 1 solo -> anunciar ganador y terminar
+                if len(self.players) <= 1:
+                    if self.players:
+                        await self.channel.send(f"🏆 **{self.players[0].mention}** es el último en pie. ¡Ganador!")
+                    else:
+                        await self.channel.send("No quedan jugadores. Fin del juego.")
+                    self.cleanup()
+                    return
+                # recargar arma (colocar bala aleatoriamente) y seguir; current_player eliminado
+                self._place_bullet()
+                # current_player_idx apunta al siguiente jugador automáticamente (mantenemos el mismo índice
+                # porque la lista se acortó; no incrementamos)
+                if self.current_player_idx >= len(self.players):
+                    self.current_player_idx = 0
+                await self.channel.send("🔄 Se recarga el arma y la partida continúa.")
+            else:
+                # Click — vivo
+                await self.channel.send(f"🔒 **{current_player.mention}** ha disparado y *vive* (click).")
+                # avanzar la cámara y el jugador
+                self.current_chamber_index = (self.current_chamber_index + 1) % 6
+                self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
+
+        # Si sale del while y queda uno
+        if len(self.players) == 1:
+            await self.channel.send(f"🏆 **{self.players[0].mention}** es el último en pie. ¡Ganador!")
+        else:
+            await self.channel.send("Juego terminado.")
+        self.cleanup()
+
+    async def _wait_with_resets(self):
+        # Limpia y usa self.reset_event para reiniciar si se recibe señal de actividad
+        # la lógica: si reset_event se activa durante los 5s, se reinicia la espera a 5s.
+        while True:
+            self.reset_event.clear()
+            try:
+                await asyncio.wait_for(self.reset_event.wait(), timeout=5.0)
+                # si aquí llegamos, alguien reseteó -> repetir bucle y volver a esperar 5s
+                continue
+            except asyncio.TimeoutError:
+                # no hubo resets en 5s -> continuar
+                break
+
+    def reset_countdown(self):
+        # llamado desde on_message cuando haya actividad en el canal
+        # set el event para reiniciar la espera actual
         try:
-            await interaction.followup.send(f"Tu turno: escribe `/dispararse` en {channel.mention}. Tienes {TURN_TIMEOUT} segundos.", ephemeral=True, user=next_member)
+            self.reset_event.set()
         except Exception:
             pass
 
-        # Opcional: esperar un cierto tiempo y, si el jugador no actúa, saltarlo automáticamente.
-        # Para evitar bloquear la interacción actual, lanzamos una tarea background que espera
-        asyncio.create_task(_turn_timeout_handler(channel.id, next_player_id))
+    def cleanup(self):
+        # Quitar referencia al juego en global
+        try:
+            del games_by_channel[self.channel.id]
+        except KeyError:
+            pass
 
-
-async def _turn_timeout_handler(channel_id: int, player_id: int):
-    await asyncio.sleep(TURN_TIMEOUT)
-    # si la partida aún existe y es el turno del player y no se ha movido -> saltar
-    if channel_id not in active_games:
-        return
-    game = active_games[channel_id]
-    async with game.lock:
-        if not game.started or game.winner_declared:
-            return
-        if len(game.alive) == 0:
-            return
-        if game.alive[game.current_index] != player_id:
-            return  # ya jugó o turno cambiado
-
-        # Saltar turno (no disparo) — simplemente avanzar al siguiente
-        # (Puedes cambiar a considerarlo como "se dispara y muere" si prefieres penalizar por timeout)
-        channel = bot.get_channel(game.channel_id)
-        if channel:
-            asyncio.create_task(channel.send(f"⏱️ {bot.get_user(player_id).mention} no reaccionó a tiempo. Se salta su turno."))
-        # avanzar el turno
-        game.current_index = (game.current_index + 1) % len(game.alive)
-        # anunciar nuevo turno
-        next_player_id = game.alive[game.current_index]
-        next_member = bot.get_guild(game.guild_id).get_member(next_player_id)
-        if channel:
-            asyncio.create_task(channel.send(f"➡️ Turno de {next_member.mention}. Usa `/dispararse`."))
-            # intentar enviar instrucción ephemeral (no siempre es posible desde aquí)
-            # no hacemos followup aquí porque no tenemos interaction; el mensaje público es suficiente.
-
-
-@bot.tree.command(name="ruleta_cancel", description="Cancela la ruleta activa en este canal (creador o admin).")
-async def ruleta_cancel(interaction: discord.Interaction):
+# Comando para lanzar la interfaz de unión / inicio de la ruleta
+@bot.tree.command(name="ruleta-rusa", description="Inicia una partida de ruleta rusa (juego, no violencia real).")
+async def ruleta_rusa(interaction: discord.Interaction):
     channel = interaction.channel
-    user = interaction.user
-
-    if channel.id not in active_games:
-        await interaction.response.send_message("No hay ninguna ruleta activa en este canal.", ephemeral=True)
-        return
-    game = active_games[channel.id]
-
-    if user.id != game.creator_id and not user.guild_permissions.manage_guild and not user.guild_permissions.administrator:
-        await interaction.response.send_message("Solo el creador o un administrador puede cancelar la partida.", ephemeral=True)
+    if channel is None or not isinstance(channel, discord.TextChannel):
+        await interaction.response.send_message("Este comando solo puede usarse en un canal de texto del servidor.", ephemeral=True)
         return
 
-    # eliminar
-    del active_games[channel.id]
-    await interaction.response.send_message("Partida cancelada.", ephemeral=False)
+    # Si ya hay un juego en este canal, no crear otro
+    if channel.id in games_by_channel:
+        await interaction.response.send_message("Ya hay una ruleta activa en este canal.", ephemeral=True)
+        return
+
+    # Crear juego y vista
+    game = RussianRouletteGame(channel=channel, initiator=interaction.user)
+    view = RussianRouletteView(game)
+    content = game.join_message_text()
+    msg = await channel.send(content, view=view)
+    game.view_message = msg
+    games_by_channel[channel.id] = game
+    await interaction.response.send_message("Se ha creado la ruleta. ¡Únete con los botones en el mensaje!", ephemeral=True)
 
 
-token = os.environ["DISCORD_TOKEN"]
 
-bot.run(token)
+
+IA = IA(COHERE_API_KEY)
+
+# Evento que escucha mensajes para reiniciar la cuenta regresiva si hay actividad
+@bot.event
+async def on_message(message: discord.Message):
+    # Ignorar mensajes del bot
+    if message.author.bot:
+        return
+
+    game = games_by_channel.get(getattr(message.channel, "id", None))
+    if game and game.started:
+        # Reiniciar countdown del juego en este canal
+        game.reset_countdown()
+
+    if bot.user in message.mentions:
+        # Responder usando IA
+        try:
+            reply = IA.chat(message.content)
+        except:
+            reply = "Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix"
+        await message.reply(f"{reply}")
+
+    # Si usas otras funciones on_message, recuerda llamar a bot.process_commands si usas commands.Bot
+    try:
+        await bot.process_commands(message)
+    except Exception:
+        # Si tu bot es discord.Client con app_commands y no usas process_commands, omite esto
+        pass
+
+
+
+bot.run(DISCORD_TOKEN)
