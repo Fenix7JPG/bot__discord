@@ -1,18 +1,20 @@
-from transformers import pipeline
+import cohere
+from collections import deque
 
-# cargamos el modelo distilgpt2 (se descarga la primera vez)
-generator = pipeline("text-generation", model="datificate/gpt2-small-spanish")
 
-def generar_respuesta(prompt: str, max_new_tokens: int = 100) -> str:
-    salida = generator(prompt, max_new_tokens=max_new_tokens, num_return_sequences=1)
-    return salida[0]["generated_text"]
+class IA():
+    def __init__(self,api):
+        self.api_key = api
+        self.co = cohere.Client(self.api_key)
+        self.historial = deque(maxlen=29)
+    def chat(self,message):
+        self.historial.append({"role": "USER", "message": message})
+        response = self.co.chat(
+            model="command-a-03-2025",
+            message=message,
+            chat_history=self.historial # pasamos todo menos el último, que ya está en "message"
+        )
+        bot_reply = response.text.strip()
+        self.historial.append({"role": "CHATBOT", "message": bot_reply})
+        return bot_reply
 
-if __name__ == "__main__":
-    print("🤖 IA cargada. Escribe 'salir' para terminar.\n")
-    while True:
-        entrada = input("Tú: ")
-        if entrada.lower() in ["salir", "exit", "quit"]:
-            print("👋 ¡Adiós!")
-            break
-        respuesta = generar_respuesta(entrada, max_new_tokens=80)
-        print(f"IA: {respuesta}\n")
