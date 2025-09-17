@@ -1309,7 +1309,7 @@ async def on_message(message: discord.Message):
     if bot.user in message.mentions:
         # Responder usando IA
         try:
-            reply = IA.chat(message.content)SSS
+            reply = IA.chat(message.content)
         except:
             reply = "Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix"
         await message.reply(f"{reply}")
@@ -1327,4 +1327,5 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
