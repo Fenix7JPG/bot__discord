@@ -1313,10 +1313,10 @@ async def on_message(message: discord.Message):
         except:
             reply = "Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix"
         await message.reply(f"{reply}")
-    if random.randint(1, 20) == 1:
-        reply = IA.actu(message.content)
-        if reply:
-            await message.reply(f"{reply}")
+
+    reply = IA.actu(message.content)
+    if reply:
+        await message.reply(f"{reply}")
 
     try:
         await bot.process_commands(message)
@@ -1327,5 +1327,6 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
