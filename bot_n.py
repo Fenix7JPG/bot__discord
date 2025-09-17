@@ -1309,12 +1309,15 @@ async def on_message(message: discord.Message):
     if bot.user in message.mentions:
         # Responder usando IA
         try:
-            reply = IA.chat(message.content)
+            reply = IA.chat(message.content)SSS
         except:
             reply = "Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix"
         await message.reply(f"{reply}")
+    if random.randint(1, 20) == 1:
+        reply = IA.actu(message.content)
+        if reply:
+            await message.reply(f"{reply}")
 
-    # Si usas otras funciones on_message, recuerda llamar a bot.process_commands si usas commands.Bot
     try:
         await bot.process_commands(message)
     except Exception:
@@ -1324,3 +1327,4 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
