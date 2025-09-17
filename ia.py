@@ -28,12 +28,12 @@ class IA():
         self.historial.append({"role": "CHATBOT", "message": bot_reply})
 
         return bot_reply
-    def actu(self):
+    def actu(self,message):
         historial = []
         if self.instruction:
             historial.append(self.instruction)
         historial.extend(self.historial)
-        
+        self.historial.append({"role": "USER", "message": message})
 
         response = self.co.chat(
             model="command-a-03-2025",
@@ -43,8 +43,17 @@ class IA():
         )
         bot_reply = response.text.strip()
         if bot_reply.upper() == "SI":
-            last_user_message = "Aporta algo a la conversación."
-            return self.chat(last_user_message)
+            response = self.co.chat(
+                model="command-a-03-2025",
+                message=message,
+                chat_history=historial, # pasamos todo menos el último, que ya está en "message"
+                
+            )
+            bot_reply = responde.text.strip()
+            self.historial.append({"role": "CHATBOT", "message": bot_reply})
+            return bot_reply
+        return None
+
 
 
 
