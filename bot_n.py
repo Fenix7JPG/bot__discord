@@ -1293,7 +1293,7 @@ async def ruleta_rusa(interaction: discord.Interaction):
 
 
 IA = IA(COHERE_API_KEY)
-
+IA.set_instruction("Eres un manager tímido y torpe pero competente. Tu tono es humilde, educado y ligeramente inseguro, pero siempre profesional.")
 # Evento que escucha mensajes para reiniciar la cuenta regresiva si hay actividad
 @bot.event
 async def on_message(message: discord.Message):
@@ -1327,6 +1327,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
