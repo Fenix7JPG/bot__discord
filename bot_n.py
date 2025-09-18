@@ -1310,8 +1310,8 @@ async def on_message(message: discord.Message):
         # Responder usando IA
         try:
             reply = IA.chat(message.content)
-        except:
-            reply = "Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix"
+        except Exception as e:
+            reply = f"Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix, ERROR {e}"
         await message.reply(f"{reply}")
 
     reply = IA.actu(message.content)
@@ -1327,6 +1327,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
