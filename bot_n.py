@@ -1313,10 +1313,10 @@ async def on_message(message: discord.Message):
         except Exception as e:
             reply = f"Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix, ERROR {e}"
         await message.reply(f"{reply}")
-
-    reply = IA.actu(message.content)
-    if reply:
-        await message.reply(f"{reply}")
+    else:
+        reply = IA.actu(message.content)
+        if reply:
+            await message.reply(f"{reply}")
 
     try:
         await bot.process_commands(message)
@@ -1327,6 +1327,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
