@@ -29,17 +29,9 @@ class IA():
 
         return bot_reply
     def guardar_mensj(self,message):
-        self.historial.append({"role": "USER","message": f"{message}"})
-        history = list(self.historial)  # la lista que vas a enviar
-        for i, el in enumerate(history):
-            print("INDEX", i, "TYPE", type(el))
-            if isinstance(el, dict):
-                print(" KEYS:", list(el.keys()))
-                print(" MESSAGE:", el.get("message"))
-                if 'message' not in el or el.get('message') is None:
-                    print(" >>> PROBLEM: falta 'message' o es None en index", i, "->", el)
-            else:
-                print(" >>> PROBLEM: elemento no es dict en index", i, "->", el)
+        text = str(message)
+        # Guarda como diccionario con claves consistentes
+        self.historial.append({"role": "user", "message": text})
     def actu(self):
         historial = []
         historial.extend(self.historial)
@@ -67,6 +59,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
