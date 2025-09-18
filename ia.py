@@ -52,10 +52,11 @@ class IA():
                     chat_history=historial, # pasamos todo menos el último, que ya está en "message"
                     
                 )
-                bot_reply = responde.text.strip()
+                bot_reply = response.text.strip()
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
