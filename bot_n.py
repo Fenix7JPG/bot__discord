@@ -1305,7 +1305,7 @@ async def on_message(message: discord.Message):
     if game and game.started:
         # Reiniciar countdown del juego en este canal
         game.reset_countdown()
-
+    
     if bot.user in message.mentions:
         # Responder usando IA
         try:
@@ -1314,10 +1314,13 @@ async def on_message(message: discord.Message):
             reply = f"Locutor: Se le fundio la cabeza, no puede responder ahora. Intenta llamar a Fenix, ERROR {e}"
         await message.reply(f"{reply}")
     else:
-        reply = IA.actu(message.content)
-        if reply:
-            await message.reply(f"{reply}")
+        IA.guardar_mensj(message.content)
+        if random.randint(0,1) == 20:
+            reply = IA.actu()
+            if reply:
+                await message.reply(f"{reply}")
 
+    
     try:
         await bot.process_commands(message)
     except Exception:
