@@ -14,8 +14,8 @@ class IA():
 
     def chat(self,message):
         historial = []
-        if self.instruction:
-            historial.append(self.instruction)
+        #if self.instruction:
+            #historial.append(self.instruction)
         historial.extend(self.historial)
         
         self.historial.append({"role": "USER", "message": message})
@@ -23,6 +23,7 @@ class IA():
             model="command-a-03-2025",
             message=message,
             chat_history=historial, # pasamos todo menos el último, que ya está en "message"
+            preamble=self.instruction["message"]
             
         )
         bot_reply = response.text.strip()
@@ -56,6 +57,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
