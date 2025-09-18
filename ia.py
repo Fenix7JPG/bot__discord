@@ -34,7 +34,7 @@ class IA():
         historial = []
         historial.extend(self.historial)
 
-        if random.randint(0,0) == 0:
+        if random.randint(0,20) == 0:
             
             response = self.co.chat(
                 model="command-a-03-2025",
@@ -57,6 +57,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
