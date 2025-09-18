@@ -28,12 +28,11 @@ class IA():
         self.historial.append({"role": "CHATBOT", "message": bot_reply})
 
         return bot_reply
+    def guardar_mensj(self.message):
+        self.historial.append({"role": "USER","message": message})
     def actu(self,message):
         historial = []
-        if self.instruction:
-            historial.append(self.instruction)
         historial.extend(self.historial)
-        self.historial.append({"role": "USER", "message": message})
 
         if random.randint(0,20) == 20:
             
@@ -57,6 +56,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
