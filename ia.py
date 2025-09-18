@@ -29,7 +29,7 @@ class IA():
 
         return bot_reply
     def guardar_mensj(self,message):
-        self.historial.append({"role": "USER","message": f"{message}})
+        self.historial.append({"role": "USER","message": f"{message}"})
     def actu(self):
         historial = []
         historial.extend(self.historial)
@@ -57,6 +57,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
         return None
+
 
 
 
