@@ -1301,8 +1301,9 @@ async def on_message(message: discord.Message):
     # Ignorar mensajes del bot
     if message.author.bot:
         return
-    if not isinstance(message.content, str):
+    if not isinstance(message.content, str) or not message.content:
         return
+
     game = games_by_channel.get(getattr(message.channel, "id", None))
     if game and game.started:
         # Reiniciar countdown del juego en este canal
@@ -1332,6 +1333,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
