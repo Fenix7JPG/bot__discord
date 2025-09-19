@@ -33,11 +33,10 @@ class IA():
         # Guarda como diccionario con claves consistentes
         self.historial.append({"role": "user", "message": text})
     def actu(self):
-        historial = []
-        historial.extend(self.historial)
+            historial = []
+            historial.extend(self.historial)
 
-        if random.randint(0,20) == 0:
-            
+
             response = self.co.chat(
                 model="command-a-03-2025",
                 message= "Analiza la conversación. Si crees que aporta valor responder, devuelve 'SI'. Si no es necesario participar, devuelve 'NO'. No escribas nada más.",
@@ -58,7 +57,8 @@ class IA():
                 bot_reply = response.text.strip()
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
-        return None
+            return None
+
 
 
 
