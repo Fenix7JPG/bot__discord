@@ -24,6 +24,7 @@ DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 COHERE_API_KEY = os.environ.get("COHERE_API_KEY")
 
 intents = discord.Intents.default()
+intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 PATH_USERS = "data.json"
@@ -1315,7 +1316,7 @@ async def on_message(message: discord.Message):
         await message.reply(f"{reply}")
     else:
         IA.guardar_mensj(f"{message.content}")
-        if random.randint(0,1) == 20:
+        if random.randint(0,20) == 0:
             reply = IA.actu()
             if reply:
                 await message.reply(f"{reply}")
@@ -1330,6 +1331,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
