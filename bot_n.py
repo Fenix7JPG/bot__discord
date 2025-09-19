@@ -1298,7 +1298,8 @@ IA = IA(COHERE_API_KEY)
 # Evento que escucha mensajes para reiniciar la cuenta regresiva si hay actividad
 @bot.event
 async def on_message(message: discord.Message):
-
+    if message.author == bot.user:
+        return
     if not isinstance(message.content, str) or not message.content:
         return
 
@@ -1331,6 +1332,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
