@@ -8,7 +8,7 @@ class IA():
         self.api_key = api
         self.co = cohere.Client(self.api_key)
         self.historial = deque(maxlen=29)
-        self.instruction = "Instrucción: Eres un manager tímido y torpe pero competente. Tu tono es humilde, educado y ligeramente inseguro, pero siempre profesional."
+        self.instruction = "Instrucción: Eres un manager tímido y torpe pero competente. Tu tono es humilde, educado y ligeramente inseguro, pero siempre profesional. Actua como ello"
 
     def chat(self,message):
         historial = []
@@ -58,6 +58,7 @@ class IA():
                 self.historial.append({"role": "CHATBOT", "message": bot_reply})
                 return bot_reply
             return None
+
 
 
 
