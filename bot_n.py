@@ -1316,7 +1316,7 @@ async def on_message(message: discord.Message):
         await message.reply(f"{reply}")
     else:
         IA.guardar_mensj(f"{message.content}")
-        if random.randint(0,20) == 0:
+        if random.randint(0,5) == 0:
             reply = IA.actu()
             if reply:
                 await message.reply(f"{reply}")
@@ -1331,6 +1331,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
