@@ -1301,7 +1301,7 @@ async def on_message(message: discord.Message):
     # Ignorar mensajes del bot
     if message.author.bot:
         return
-    if isinstance(message.content, str):
+    if not isinstance(message.content, str):
         return
     game = games_by_channel.get(getattr(message.channel, "id", None))
     if game and game.started:
@@ -1332,6 +1332,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
