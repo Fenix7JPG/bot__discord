@@ -19,7 +19,7 @@ from ia import IA
 from pag import keep_alive
 keep_alive()
 
-
+waza
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 COHERE_API_KEY = os.environ.get("COHERE_API_KEY")
 
@@ -1332,6 +1332,7 @@ async def on_message(message: discord.Message):
 
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
