@@ -90,7 +90,7 @@ async def on_ready():
     # Sincroniza los slash commands con Discord (puedes usar sync() por guild en desarrollo)
     await bot.tree.sync()
     print(f"Conectado como {bot.user} (id: {bot.user.id})")
-    await bot.change_presence(status=discord.Status.invisible) #poner estado invisible
+    #await bot.change_presence(status=discord.Status.invisible) #poner estado invisible
 
 @bot.tree.command(name="ping", description="Responde con Pong y la latencia")
 async def ping(interaction: discord.Interaction):
@@ -1330,11 +1330,12 @@ async def on_message(message: discord.Message):
         # Si tu bot es discord.Client con app_commands y no usas process_commands, omite esto
         pass
 
-@bot.check
-async def global_check(ctx):
-    return
+#@bot.check
+#async def global_check(ctx):
+    #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
