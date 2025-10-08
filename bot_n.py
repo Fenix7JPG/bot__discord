@@ -1027,6 +1027,31 @@ async def d20(interaction: discord.Interaction):
     result = random.randint(1, 20)
     await interaction.response.send_message(f"🎲 Has lanzado un **d20** → **{result}**")
 
+
+#######################################
+@bot.tree.command(name="confesion", description="Envía una confesión anónima (o con autor falso si quieres). 💬")
+async def confesion(interaction: discord.Interaction, mensaje: str, autor: str = None):
+    await interaction.response.defer(ephemeral=True)  # solo el que lo ejecuta ve esta respuesta
+
+    # Crear el embed del mensaje
+    embed = discord.Embed(
+        title="💬 Nueva Confesión",
+        description=mensaje,
+        color=discord.Color.random()
+    )
+
+    if autor:
+        embed.set_footer(text=f"— {autor}")
+    else:
+        embed.set_footer(text="Autor anónimo 😶")
+
+    # Enviar la confesión en el mismo canal donde se usó el comando
+    await interaction.channel.send(embed=embed)
+
+    await interaction.followup.send("✅ Tu confesión fue enviada correctamente (nadie sabrá que fuiste tú 😎)", ephemeral=True)
+
+
+
 # Sesión http reutilizable
 session: aiohttp.ClientSession | None = None
 
@@ -1335,6 +1360,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
