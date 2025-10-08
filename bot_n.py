@@ -1041,15 +1041,18 @@ async def confesion(interaction: discord.Interaction, mensaje: str, autor: str =
 
     user_fake = None
 
-    # Verificar si el autor parece un ID (solo números)
-    if autor and autor.isdigit():
-        try:
-            user_fake = await interaction.guild.fetch_member(int(autor))
-        except:
-            user_fake = None
+    if autor:
+        # Limpia el autor si es mención tipo <@123> o <@!123>
+        match = re.search(r"\d{17,20}", autor)
+        if match:
+            user_id = int(match.group(0))
+            try:
+                user_fake = await interaction.guild.fetch_member(user_id)
+            except:
+                user_fake = None
 
+    # Mostrar según el tipo de autor
     if user_fake:
-        # Simula el mensaje con la identidad del usuario encontrado
         embed.set_author(name=user_fake.display_name, icon_url=user_fake.display_avatar.url)
         embed.set_footer(text=f"ID: {user_fake.id}")
     elif autor:
@@ -1057,9 +1060,7 @@ async def confesion(interaction: discord.Interaction, mensaje: str, autor: str =
     else:
         embed.set_footer(text="Autor anónimo 😶")
 
-    # Enviar el mensaje en el mismo canal
     await interaction.channel.send(embed=embed)
-
     await interaction.followup.send("✅ Confesión enviada correctamente (shhh 🤫)", ephemeral=True)
 
 # Sesión http reutilizable
@@ -1370,6 +1371,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
