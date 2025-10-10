@@ -1345,20 +1345,13 @@ async def on_message(message: discord.Message):
         # Reiniciar countdown del juego en este canal
         game.reset_countdown()
     
-    if bot.user in message.mentions:
+    if bot.user in message.mentions and not message.reference:
         # Responder usando IA
         try:
             reply = IA.chat(f"{message.content}")
         except Exception as e:
             reply = f"Locutor: Se le fundio la cabeza, no puede responder. Intenta llamar a Fenix, ERROR {e}"
         await message.reply(f"{reply}")
-    else:
-        IA.guardar_mensj(f"{message.content}")
-        if random.randint(0,100) == 0:
-            reply = IA.actu()
-            if reply:
-                await message.reply(f"{reply}")
-
     
     try:
         await bot.process_commands(message)
@@ -1371,6 +1364,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
