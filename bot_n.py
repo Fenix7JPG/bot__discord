@@ -1328,6 +1328,59 @@ async def ruleta_rusa(interaction: discord.Interaction):
     await interaction.response.send_message("Se ha creado la ruleta. ¡Únete con los botones en el mensaje!", ephemeral=True)
 
 
+class FFmpegCheckCog(commands.Cog):
+    """Cog para comprobar si ffmpeg está presente y ejecutable en el host."""
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @commands.command(name="checkffmpeg")
+    async def checkffmpeg(self, ctx: commands.Context):
+        """!checkffmpeg -> comprueba ffmpeg -version y devuelve resultado."""
+        await ctx.trigger_typing()
+
+        ff_path = shutil.which("ffmpeg")
+        # Intento ejecutar ffmpeg -version
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "ffmpeg", "-version",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            try:
+                out, err = await asyncio.wait_for(proc.communicate(), timeout=6)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await ctx.reply("La comprobación de `ffmpeg` excedió el tiempo de espera (timeout).")
+                return
+
+            stdout = out.decode(errors="ignore").strip()
+            stderr = err.decode(errors="ignore").strip()
+
+            if proc.returncode == 0 and stdout:
+                # Tomamos la primera línea de la salida (versión)
+                first_line = stdout.splitlines()[0]
+                embed = discord.Embed(
+                    title="ffmpeg — OK",
+                    description=f"Ruta: `{ff_path or 'No disponible (no se encontró con shutil.which)'}`\nVersión: `{first_line}`"
+                )
+                await ctx.reply(embed=embed)
+            else:
+                # Ejecutable existía pero devolvió error o salida vacía
+                msg = f"`ffmpeg` ejecutado pero devolvió código {proc.returncode}."
+                if stderr:
+                    msg += f"\nError:```{stderr[:1900]}```"
+                elif stdout:
+                    msg += f"\nSalida:```{stdout[:1900]}```"
+                await ctx.reply(msg)
+
+        except FileNotFoundError:
+            await ctx.reply("`ffmpeg` no está instalado o no está en PATH (`FileNotFoundError`).")
+        except Exception as e:
+            await ctx.reply(f"Error al intentar ejecutar `ffmpeg`: `{e}`")
+@bot.tree.command(name="setup", description="Waza")
+async def setup(bot: commands.Bot):
+    await bot.add_cog(FFmpegCheckCog(bot))
+
 
 
 IA = IA(COHERE_API_KEY)
@@ -1364,6 +1417,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
