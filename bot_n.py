@@ -1328,58 +1328,129 @@ async def ruleta_rusa(interaction: discord.Interaction):
     await interaction.response.send_message("Se ha creado la ruleta. ¡Únete con los botones en el mensaje!", ephemeral=True)
 
 
-class FFmpegCheckCog(commands.Cog):
-    """Cog para comprobar si ffmpeg está presente y ejecutable en el host."""
-    def __init__(self, bot: commands.Bot):
+class FFmpegCheckDebugCog(commands.Cog):
+    """Cog para comprobar si ffmpeg está presente y ver por qué pudo fallar."""
+
+    def __init__(self, bot: commands.Bot, timeout: Optional[int] = None):
         self.bot = bot
+        self.timeout = timeout or int(os.getenv("FFMPEG_CHECK_TIMEOUT", DEFAULT_TIMEOUT))
 
     @commands.command(name="checkffmpeg")
     async def checkffmpeg(self, ctx: commands.Context):
-        """!checkffmpeg -> comprueba ffmpeg -version y devuelve resultado."""
-        await ctx.trigger_typing()
+        """
+        Uso: !checkffmpeg
+        Responde inmediatamente y luego actualiza con resultado detallado.
+        """
+        # Respuesta rápida para confirmar recepción
+        try:
+            status_msg = await ctx.reply("🔎 Comprobando `ffmpeg`... (esto puede tardar unos segundos)")
+        except Exception as e:
+            # Si falló enviar respuesta inicial, logueamos y seguimos intentando usar channel.send
+            print("Error al enviar mensaje inicial:", e)
+            try:
+                status_msg = await ctx.channel.send("🔎 Comprobando `ffmpeg`... (fallback send)")
+            except Exception as e2:
+                # Si tampoco podemos enviar, imprimimos y salimos
+                print("No se pudo enviar mensaje de comprobación al canal. Excepción:", e2)
+                return
 
+        # 1) Comprobación rápida con shutil.which
         ff_path = shutil.which("ffmpeg")
-        # Intento ejecutar ffmpeg -version
+        if not ff_path:
+            # No está en PATH: informar y continuar tratando de ejecutar por si acaso
+            reply_text = ("❌ `ffmpeg` no se encontró en PATH (`shutil.which` devolvió None).\n"
+                          "Intentaré ejecutar `ffmpeg -version` de todos modos para ver si hay más información.")
+            try:
+                await status_msg.edit(content=reply_text)
+            except Exception:
+                await ctx.reply(reply_text)
+
+        # 2) Intento de ejecutar ffmpeg -version (async) con timeout
         try:
             proc = await asyncio.create_subprocess_exec(
                 "ffmpeg", "-version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            try:
-                out, err = await asyncio.wait_for(proc.communicate(), timeout=6)
-            except asyncio.TimeoutError:
-                proc.kill()
-                await ctx.reply("La comprobación de `ffmpeg` excedió el tiempo de espera (timeout).")
-                return
-
-            stdout = out.decode(errors="ignore").strip()
-            stderr = err.decode(errors="ignore").strip()
-
-            if proc.returncode == 0 and stdout:
-                # Tomamos la primera línea de la salida (versión)
-                first_line = stdout.splitlines()[0]
-                embed = discord.Embed(
-                    title="ffmpeg — OK",
-                    description=f"Ruta: `{ff_path or 'No disponible (no se encontró con shutil.which)'}`\nVersión: `{first_line}`"
-                )
-                await ctx.reply(embed=embed)
-            else:
-                # Ejecutable existía pero devolvió error o salida vacía
-                msg = f"`ffmpeg` ejecutado pero devolvió código {proc.returncode}."
-                if stderr:
-                    msg += f"\nError:```{stderr[:1900]}```"
-                elif stdout:
-                    msg += f"\nSalida:```{stdout[:1900]}```"
-                await ctx.reply(msg)
-
         except FileNotFoundError:
-            await ctx.reply("`ffmpeg` no está instalado o no está en PATH (`FileNotFoundError`).")
+            # Ejecutable no existe
+            msg = ("❌ `FileNotFoundError`: `ffmpeg` no está instalado o no está en PATH.\n"
+                   "Comprueba la shell del servicio: `which ffmpeg` o `ffmpeg -version`.")
+            print("FileNotFoundError al crear_subprocess_exec para ffmpeg")
+            try:
+                await status_msg.edit(content=msg)
+            except Exception:
+                await ctx.reply(msg)
+            return
         except Exception as e:
-            await ctx.reply(f"Error al intentar ejecutar `ffmpeg`: `{e}`")
-@bot.tree.command(name="setup", description="Waza")
+            # Otro error al intentar arrancar el proceso
+            tb = traceback.format_exc()
+            print("Excepción al crear subproceso ffmpeg:\n", tb)
+            try:
+                await status_msg.edit(content=f"❌ Error al intentar ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            except Exception:
+                await ctx.reply(f"❌ Error al intentar ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            return
+
+        # Esperar la salida con timeout
+        try:
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await status_msg.edit(content=f"⏱️ Tiempo de espera excedido después de {self.timeout}s. El proceso fue terminado.")
+            print(f"ffmpeg check: timeout after {self.timeout}s")
+            return
+        except Exception as e:
+            tb = traceback.format_exc()
+            print("Error al esperar la comunicación del proceso ffmpeg:\n", tb)
+            try:
+                await status_msg.edit(content=f"❌ Error al ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            except Exception:
+                await ctx.reply(f"❌ Error al ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            return
+
+        stdout = (out.decode(errors="ignore") or "").strip()
+        stderr = (err.decode(errors="ignore") or "").strip()
+
+        # Si el proceso terminó pero con código distinto de 0 -- aún inspeccionamos salida
+        code = proc.returncode
+
+        # Construir respuesta final con la info más útil (recortada si es muy larga)
+        MAX_CHARS = 1800
+        def trunc(s): return (s[:MAX_CHARS] + "...") if len(s) > MAX_CHARS else s
+
+        if code == 0 and stdout:
+            first_line = stdout.splitlines()[0]
+            reply = (f"✅ `ffmpeg` encontrado en `{ff_path or 'desconocido'}`\n"
+                     f"Versión (primer línea): `{first_line}`\n\n"
+                     f"Salida completa (recortada si es larga):\n```{trunc(stdout)}```")
+            print("ffmpeg OK:", first_line)
+            try:
+                await status_msg.edit(content=reply)
+            except Exception:
+                await ctx.reply(reply)
+            return
+
+        # Si llegamos aquí, algo no está bien: mostrar stdout/stderr y código
+        reply_parts = [
+            f"❌ `ffmpeg` ejecutado pero devolvió código {code}.",
+            f"Ruta (shutil.which): `{ff_path}`"
+        ]
+        if stdout:
+            reply_parts.append(f"Stdout (recortado):\n```{trunc(stdout)}```")
+        if stderr:
+            reply_parts.append(f"Stderr (recortado):\n```{trunc(stderr)}```")
+        final_reply = "\n".join(reply_parts)
+        print("ffmpeg check: exit code", code)
+        print("stdout:", stdout)
+        print("stderr:", stderr)
+        try:
+            await status_msg.edit(content=final_reply)
+        except Exception:
+            await ctx.reply(final_reply)
+
 async def setup(bot: commands.Bot):
-    await bot.add_cog(FFmpegCheckCog(bot))
+    await bot.add_cog(FFmpegCheckDebugCog(bot))
 
 
 
@@ -1417,6 +1488,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
