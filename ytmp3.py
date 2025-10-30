@@ -4,7 +4,7 @@ from discord import app_commands
 import yt_dlp
 from io import BytesIO
 
-def setup(tree: app_commands.CommandTree):
+def ytmp3(tree: app_commands.CommandTree):
 
     @tree.command(name="ytmp3", description="Descarga música de YouTube y la envía como MP3 🎵")
     @app_commands.describe(query="Nombre o URL del video de YouTube")
