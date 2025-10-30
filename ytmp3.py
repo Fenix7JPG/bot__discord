@@ -28,6 +28,9 @@ def ytmp3(tree: app_commands.CommandTree):
         ydl_opts = {
             "format": "bestaudio/best",
             "quiet": True,
+            "noplaylist": True,
+            "external_downloader": "aria2c",
+            "external_downloader_args": ["-x", "16", "-s", "16", "-k", "1M"],  # conexiones, streams
             "cookiefile": cookiefile_path,
             "postprocessors": [
                 {
