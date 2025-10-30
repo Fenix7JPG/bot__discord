@@ -1306,80 +1306,121 @@ class RussianRouletteGame:
         except KeyError:
             pass
 
-@bot.tree.command(name="play", description="Descarga música de YouTube 🎵")  
-@app_commands.describe(query="Nombre de la canción o URL de YouTube")  
-async def play(interaction: discord.Interaction, query: str):  
-    # Responder inmediatamente para evitar timeout  
-    await interaction.response.defer()  
-      
-    try:  
-        # 1. Buscar el video usando la API de Vreden  
-        search_url = f"https://api.vreden.my.id/api/ytsearch?query={query}"  
-          
-        async with aiohttp.ClientSession() as session:  
-            # Buscar  
-            async with session.get(search_url) as resp:  
-                search_data = await resp.json()  
-          
-        if not search_data.get('status') or not search_data.get('result'):  
-            await interaction.followup.send("❌ No se encontraron resultados")  
-            return  
-          
-        video = search_data['result'][0]  
-          
-        # Mostrar información del video  
-        embed = discord.Embed(  
-            title="🎵 Música encontrada",  
-            description=f"**{video['title']}**",  
-            color=discord.Color.blue()  
-        )  
-        embed.add_field(name="👤 Canal", value=video['author']['name'], inline=True)  
-        embed.add_field(name="⏱️ Duración", value=video['duration']['timestamp'], inline=True)  
-        embed.add_field(name="👁️ Vistas", value=f"{video['views']:,}", inline=True)  
-        embed.set_footer(text="⬇️ Descargando audio...")  
-          
-        await interaction.followup.send(embed=embed)  
-          
-        # 2. Descargar el audio  
-        download_url = f"https://api.vreden.my.id/api/ytdl?url={video['url']}&type=audio"  
-          
-        async with aiohttp.ClientSession() as session:  
-            async with session.get(download_url) as resp:  
-                download_data = await resp.json()  
-          
-        if not download_data.get('status') or not download_data['result'].get('download'):  
-            await interaction.followup.send("❌ Error descargando el audio")  
-            return  
-          
-        audio_url = download_data['result']['download']['url']  
-        filename = download_data['result']['download'].get('filename', f"{video['title'][:50]}.mp3")  
-          
-        # 3. Descargar el archivo localmente  
-        async with aiohttp.ClientSession() as session:  
-            async with session.get(audio_url) as resp:  
-                audio_data = await resp.read()  
-          
-        # Guardar temporalmente  
-        temp_path = f"./temp_{interaction.user.id}.mp3"  
-        with open(temp_path, 'wb') as f:  
-            f.write(audio_data)  
-          
-        # 4. Enviar el archivo a Discord  
-        file = discord.File(temp_path, filename=filename)  
-          
-        final_embed = discord.Embed(  
-            title="✅ Audio enviado",  
-            description=f"🎵 **{video['title']}**\n👤 {video['author']['name']}",  
-            color=discord.Color.green()  
-        )  
-          
-        await interaction.followup.send(embed=final_embed, file=file)  
-          
-        # Limpiar archivo temporal  
-        os.remove(temp_path)  
-          
-    except Exception as e:  
-        await interaction.followup.send(f"❌ Error: {str(e)}")
+@bot.tree.command(name="play", description="Descarga música de YouTube 🎵")
+@app_commands.describe(query="Nombre de la canción o URL de YouTube")
+async def play(interaction: discord.Interaction, query: str):
+    COBALT_API = "https://api.cobalt.tools/api/json"
+    # Respondemos con defer para ganar tiempo
+    await interaction.response.defer(thinking=True)
+
+    # TODO: dentro del comando hacemos toda la lógica sin helpers externos
+    async with aiohttp.ClientSession() as session:
+        # 1) POST a Cobalt pidiendo el audio
+        payload = {
+            "url": query,
+            # campos que la API Cobalt suele aceptar — puedes ajustar
+            "isAudioOnly": "true",
+            "audio": "true"
+        }
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        try:
+            async with session.post(COBALT_API, data=json.dumps(payload), headers=headers, timeout=60) as resp:
+                resp.raise_for_status()
+                resp_json = await resp.json()
+        except aiohttp.ClientResponseError as e:
+            await interaction.followup.send(f"Error desde Cobalt: HTTP {e.status}")
+            return
+        except Exception as e:
+            await interaction.followup.send(f"Error comunicando con Cobalt: `{e}`")
+            return
+
+        # 2) Extraer URL de descarga/stream desde varias estructuras comunes
+        try:
+            stream_url = None
+            # caso simple: {"url": "..."}
+            if isinstance(resp_json, dict) and resp_json.get("url"):
+                stream_url = resp_json["url"]
+            # caso files: {"files":[{"url":"...","name":"..."}]}
+            elif isinstance(resp_json, dict) and isinstance(resp_json.get("files"), list) and resp_json["files"]:
+                first = resp_json["files"][0]
+                if isinstance(first, dict) and first.get("url"):
+                    stream_url = first["url"]
+                elif isinstance(first, str):
+                    stream_url = first
+            # caso result:
+            elif isinstance(resp_json, dict) and isinstance(resp_json.get("result"), dict) and resp_json["result"].get("url"):
+                stream_url = resp_json["result"]["url"]
+            # campo alternativo:
+            elif isinstance(resp_json, dict) and resp_json.get("streamUrl"):
+                stream_url = resp_json.get("streamUrl")
+
+            if not stream_url:
+                raise RuntimeError(f"No encontré la URL de descarga en la respuesta: {resp_json}")
+        except Exception as e:
+            await interaction.followup.send(f"Error procesando respuesta de Cobalt: `{e}`")
+            return
+
+        # 3) Intentar obtener título para el nombre del archivo
+        title = None
+        if isinstance(resp_json, dict):
+            title = resp_json.get("title")
+            if not title and isinstance(resp_json.get("files"), list) and resp_json["files"]:
+                f0 = resp_json["files"][0]
+                if isinstance(f0, dict):
+                    title = f0.get("name") or f0.get("title")
+        if not title:
+            title = "audio_from_youtube"
+
+        # Sanitizar nombre de archivo
+        safe_name = "".join(c if c.isalnum() or c in " ._-()" else "_" for c in title)[:120]
+        filename = f"{safe_name}.mp3"
+
+        # 4) Descargar el MP3 a un archivo temporal (streaming)
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tf:
+                tmp_path = tf.name
+
+            # descarga por chunks
+            async with session.get(stream_url, timeout=120) as r:
+                r.raise_for_status()
+                async with aiofiles.open(tmp_path, "wb") as f:
+                    async for chunk in r.content.iter_chunked(32 * 1024):
+                        await f.write(chunk)
+        except aiohttp.ClientResponseError as e:
+            # limpiar si existe
+            if tmp_path and os.path.exists(tmp_path):
+                try: os.remove(tmp_path)
+                except: pass
+            await interaction.followup.send(f"Error descargando el audio: HTTP {e.status}")
+            return
+        except Exception as e:
+            if tmp_path and os.path.exists(tmp_path):
+                try: os.remove(tmp_path)
+                except: pass
+            await interaction.followup.send(f"Falló la descarga del audio: `{e}`")
+            return
+
+        # 5) Verificar tamaño y enviar o enviar link si demasiado grande
+        try:
+            filesize = os.path.getsize(tmp_path)
+            if filesize > MAX_ATTACHMENT_SIZE:
+                # Archivo grande -> enviar enlace y explicar
+                await interaction.followup.send(
+                    f"⚠️ El MP3 pesa {filesize/(1024*1024):.2f} MB, que excede el límite de {MAX_ATTACHMENT_SIZE/(1024*1024):.1f} MB.\n"
+                    f"No puedo adjuntarlo aquí. Puedes descargarlo desde: {stream_url}"
+                )
+            else:
+                # Enviar como attachment
+                file = discord.File(tmp_path, filename=filename)
+                await interaction.followup.send(content=f"🎧 Aquí tienes **{title}**", file=file)
+        finally:
+            # 6) limpieza del archivo temporal
+            try:
+                if tmp_path and os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
 
 # Comando para lanzar la interfaz de unión / inicio de la ruleta
 @bot.tree.command(name="ruleta-rusa", description="Inicia una partida de ruleta rusa (juego, no violencia real).")
@@ -1564,6 +1605,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
