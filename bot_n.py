@@ -1305,6 +1305,81 @@ class RussianRouletteGame:
         except KeyError:
             pass
 
+@bot.tree.command(name="play", description="Descarga música de YouTube 🎵")  
+@app_commands.describe(query="Nombre de la canción o URL de YouTube")  
+async def play(interaction: discord.Interaction, query: str):  
+    # Responder inmediatamente para evitar timeout  
+    await interaction.response.defer()  
+      
+    try:  
+        # 1. Buscar el video usando la API de Vreden  
+        search_url = f"https://api.vreden.my.id/api/ytsearch?query={query}"  
+          
+        async with aiohttp.ClientSession() as session:  
+            # Buscar  
+            async with session.get(search_url) as resp:  
+                search_data = await resp.json()  
+          
+        if not search_data.get('status') or not search_data.get('result'):  
+            await interaction.followup.send("❌ No se encontraron resultados")  
+            return  
+          
+        video = search_data['result'][0]  
+          
+        # Mostrar información del video  
+        embed = discord.Embed(  
+            title="🎵 Música encontrada",  
+            description=f"**{video['title']}**",  
+            color=discord.Color.blue()  
+        )  
+        embed.add_field(name="👤 Canal", value=video['author']['name'], inline=True)  
+        embed.add_field(name="⏱️ Duración", value=video['duration']['timestamp'], inline=True)  
+        embed.add_field(name="👁️ Vistas", value=f"{video['views']:,}", inline=True)  
+        embed.set_footer(text="⬇️ Descargando audio...")  
+          
+        await interaction.followup.send(embed=embed)  
+          
+        # 2. Descargar el audio  
+        download_url = f"https://api.vreden.my.id/api/ytdl?url={video['url']}&type=audio"  
+          
+        async with aiohttp.ClientSession() as session:  
+            async with session.get(download_url) as resp:  
+                download_data = await resp.json()  
+          
+        if not download_data.get('status') or not download_data['result'].get('download'):  
+            await interaction.followup.send("❌ Error descargando el audio")  
+            return  
+          
+        audio_url = download_data['result']['download']['url']  
+        filename = download_data['result']['download'].get('filename', f"{video['title'][:50]}.mp3")  
+          
+        # 3. Descargar el archivo localmente  
+        async with aiohttp.ClientSession() as session:  
+            async with session.get(audio_url) as resp:  
+                audio_data = await resp.read()  
+          
+        # Guardar temporalmente  
+        temp_path = f"./temp_{interaction.user.id}.mp3"  
+        with open(temp_path, 'wb') as f:  
+            f.write(audio_data)  
+          
+        # 4. Enviar el archivo a Discord  
+        file = discord.File(temp_path, filename=filename)  
+          
+        final_embed = discord.Embed(  
+            title="✅ Audio enviado",  
+            description=f"🎵 **{video['title']}**\n👤 {video['author']['name']}",  
+            color=discord.Color.green()  
+        )  
+          
+        await interaction.followup.send(embed=final_embed, file=file)  
+          
+        # Limpiar archivo temporal  
+        os.remove(temp_path)  
+          
+    except Exception as e:  
+        await interaction.followup.send(f"❌ Error: {str(e)}")
+
 # Comando para lanzar la interfaz de unión / inicio de la ruleta
 @bot.tree.command(name="ruleta-rusa", description="Inicia una partida de ruleta rusa (juego, no violencia real).")
 async def ruleta_rusa(interaction: discord.Interaction):
@@ -1488,6 +1563,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
