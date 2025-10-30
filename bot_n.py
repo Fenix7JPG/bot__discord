@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
+from typing import Optional
 import random
 import tempfile
 import yt_dlp
@@ -1563,6 +1564,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
