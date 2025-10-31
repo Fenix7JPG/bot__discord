@@ -5,6 +5,8 @@ from discord import app_commands
 import yt_dlp
 from io import BytesIO
 import subprocess
+import tempfile
+import shutil
 
 def ytmp3(tree: app_commands.CommandTree):
 
@@ -13,10 +15,9 @@ def ytmp3(tree: app_commands.CommandTree):
     async def ytmp3(interaction: discord.Interaction, query: str):
         await interaction.response.defer(thinking=True)
 
-        # SOLO USAMOS el Secret File montado. En Render pon:
-        # YT_COOKIES_FILE=/etc/secrets/youtube_cookies.txt
-        cookiefile_path = "/etc/secrets/youtube_cookies.txt"
-        if not cookiefile_path or not os.path.exists(cookiefile_path):
+        # Usar variable de entorno si está definida, sino el path por defecto (montado como Secret File)
+        cookiefile_env = os.getenv("YT_COOKIES_FILE", "/etc/secrets/youtube_cookies.txt")
+        if not cookiefile_env or not os.path.exists(cookiefile_env):
             await interaction.followup.send(
                 "⚠️ No está configurado el archivo de cookies. "
                 "En Render añade un Secret File con el contenido de cookies.txt y configura "
@@ -24,14 +25,32 @@ def ytmp3(tree: app_commands.CommandTree):
             )
             return
 
-        # Configurar yt-dlp con cookiefile
+        # Copiamos a un fichero temporal en un directorio escribible para evitar errores de solo-lectura
+        tmp_cookie_path = None
+        try:
+            # crea un archivo temporal en /tmp (o en el tmp del sistema)
+            fd, tmp_cookie_path = tempfile.mkstemp(prefix="youtube_cookies_", suffix=".txt")
+            os.close(fd)  # cerramos descriptor, usaremos shutil.copyfile
+            shutil.copyfile(cookiefile_env, tmp_cookie_path)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error al preparar el archivo de cookies: `{e}`")
+            # limpiar si quedó algo
+            try:
+                if tmp_cookie_path and os.path.exists(tmp_cookie_path):
+                    os.remove(tmp_cookie_path)
+            except Exception:
+                pass
+            return
+
+        # Configurar yt-dlp con cookiefile (apuntando a la copia temporal escribible)
         ydl_opts = {
             "format": "bestaudio/best",
             "quiet": True,
             "noplaylist": True,
+            # si no tienes aria2c instalado en Render, quita el downloader externo
             "external_downloader": "aria2c",
-            "external_downloader_args": ["-x", "16", "-s", "16", "-k", "1M"],  # conexiones, streams
-            "cookiefile": cookiefile_path,
+            "external_downloader_args": ["-x", "16", "-s", "16", "-k", "1M"],
+            "cookiefile": tmp_cookie_path,
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -106,3 +125,10 @@ def ytmp3(tree: app_commands.CommandTree):
 
         except Exception as e:
             await interaction.followup.send(f"❌ Error: `{e}`")
+        finally:
+            # borrar el archivo temporal de cookies si existe
+            try:
+                if tmp_cookie_path and os.path.exists(tmp_cookie_path):
+                    os.remove(tmp_cookie_path)
+            except Exception:
+                pass
