@@ -48,8 +48,7 @@ def ytmp3(tree: app_commands.CommandTree):
             "quiet": True,
             "noplaylist": True,
             # si no tienes aria2c instalado en Render, quita el downloader externo
-            "external_downloader": "aria2c",
-            "external_downloader_args": ["-x", "16", "-s", "16", "-k", "1M"],
+
             "cookiefile": tmp_cookie_path,
             "postprocessors": [
                 {
