@@ -1335,7 +1335,6 @@ DEFAULT_TIMEOUT = 10  # segundos por defecto si no hay FFMPEG_CHECK_TIMEOUT en e
 
 # Comando simple (no cog)
 @bot.tree.command(name="checkffmpeg", description="Revisa checkffmpeg")
-@commands.command(name="checkffmpeg")
 async def checkffmpeg(ctx: commands.Context):
     """
     Uso: !checkffmpeg
@@ -1481,6 +1480,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
