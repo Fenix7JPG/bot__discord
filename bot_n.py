@@ -1335,23 +1335,23 @@ DEFAULT_TIMEOUT = 10  # segundos por defecto si no hay FFMPEG_CHECK_TIMEOUT en e
 
 # Comando simple (no cog)
 @bot.tree.command(name="checkffmpeg", description="Revisa checkffmpeg")
-async def checkffmpeg(ctx: commands.Context):
+async def checkffmpeg(interaction: discord.Interaction):
     """
-    Uso: !checkffmpeg
+    Uso: /checkffmpeg
     Responde inmediatamente y luego actualiza con resultado detallado.
     """
     timeout = int(os.getenv("FFMPEG_CHECK_TIMEOUT", DEFAULT_TIMEOUT))
 
-    # Mensaje inicial (try/except y fallback a channel.send)
+    # RESPUESTA INMEDIATA a la interaction (evita "Application did not respond")
     try:
-        status_msg = await ctx.reply("🔎 Comprobando `ffmpeg`... (esto puede tardar unos segundos)")
+        await interaction.response.send_message("🔎 Comprobando `ffmpeg`... (esto puede tardar unos segundos)")
+        status_msg = await interaction.original_response()  # Message objeto a editar después
     except Exception as e:
-        print("Error al enviar mensaje inicial (reply):", e)
-        try:
-            status_msg = await ctx.channel.send("🔎 Comprobando `ffmpeg`... (fallback send)")
-        except Exception as e2:
-            print("No se pudo enviar el mensaje de comprobación al canal. Excepción:", e2)
-            return
+        # En caso raro de fallo al enviar la respuesta inicial, enviamos un followup (mala señal)
+        # pero normalmente NO deberías llegar aquí si interaction.response.send_message tuvo éxito.
+        print("Error enviando la respuesta inicial:", e)
+        await interaction.followup.send("🔎 Comprobando `ffmpeg`... (no se pudo enviar mensaje inicial correctamente)")
+        return
 
     # 1) Comprobación rápida con shutil.which
     ff_path = shutil.which("ffmpeg")
@@ -1361,7 +1361,7 @@ async def checkffmpeg(ctx: commands.Context):
         try:
             await status_msg.edit(content=reply_text)
         except Exception:
-            await ctx.reply(reply_text)
+            await interaction.followup.send(reply_text)
 
     # 2) Intento de ejecutar ffmpeg -version (async) con timeout
     try:
@@ -1377,7 +1377,7 @@ async def checkffmpeg(ctx: commands.Context):
         try:
             await status_msg.edit(content=msg)
         except Exception:
-            await ctx.reply(msg)
+            await interaction.followup.send(msg)
         return
     except Exception as e:
         tb = traceback.format_exc()
@@ -1385,7 +1385,7 @@ async def checkffmpeg(ctx: commands.Context):
         try:
             await status_msg.edit(content=f"❌ Error al intentar ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
         except Exception:
-            await ctx.reply(f"❌ Error al intentar ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            await interaction.followup.send(f"❌ Error al intentar ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
         return
 
     # Esperar la salida con timeout
@@ -1402,7 +1402,7 @@ async def checkffmpeg(ctx: commands.Context):
         try:
             await status_msg.edit(content=f"❌ Error al ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
         except Exception:
-            await ctx.reply(f"❌ Error al ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
+            await interaction.followup.send(f"❌ Error al ejecutar `ffmpeg`: ```{str(e)[:1500]}```")
         return
 
     stdout = (out.decode(errors="ignore") or "").strip()
@@ -1422,7 +1422,7 @@ async def checkffmpeg(ctx: commands.Context):
         try:
             await status_msg.edit(content=reply)
         except Exception:
-            await ctx.reply(reply)
+            await interaction.followup.send(reply)
         return
 
     # Si llegamos aquí, algo no está bien: mostrar stdout/stderr y código
@@ -1442,8 +1442,7 @@ async def checkffmpeg(ctx: commands.Context):
     try:
         await status_msg.edit(content=final_reply)
     except Exception:
-        await ctx.reply(final_reply)
-
+        await interaction.followup.send(final_reply)
 
 
 IA = IA(COHERE_API_KEY)
@@ -1480,6 +1479,7 @@ async def on_message(message: discord.Message):
     #return
 
 bot.run(DISCORD_TOKEN)
+
 
 
 
