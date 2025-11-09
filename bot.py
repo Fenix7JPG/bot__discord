@@ -5,6 +5,9 @@ import os
 import asyncio  # Importamos asyncio para manejar el bucle de eventos
 from pathlib import Path  # Importamos pathlib para manejar rutas de forma robusta
 
+from webserver import keep_alive
+keep_alive()
+
 # --- Configuración del Bot ---
 intents = discord.Intents.default()
 intents.message_content = True
