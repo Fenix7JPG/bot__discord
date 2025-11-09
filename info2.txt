@@ -1,0 +1,2 @@
+# Actualizar la repositorio|
+git pull origin main

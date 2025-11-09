@@ -12,7 +12,7 @@ class Confesion(commands.Cog):
         mensaje="Tu confesion",
         autor="Si deseas"
     )
-    async def confesion(interaction: discord.Interaction, mensaje: str, autor: str = None):
+    async def confesion(self,interaction: discord.Interaction, mensaje: str, autor: str = None):
         await interaction.response.defer(ephemeral=True)
 
         embed = discord.Embed(

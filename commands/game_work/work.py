@@ -7,7 +7,7 @@ import datetime
 from datetime import timezone, timedelta
 
 # --- IMPORTA TUS UTILIDADES ---
-from ...utils.data import load_data, save_data, PATH_USERS, PATH_TRABAJOS
+from utils.data import load_data, save_data, PATH_USERS, PATH_TRABAJOS
 
 class Work(commands.Cog):
     def __init__(self, bot: commands.Bot):

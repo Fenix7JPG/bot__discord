@@ -9,7 +9,7 @@ class Example(commands.Cog):
 
     @app_commands.command(name="jugar", description="Debes registrarte para jugar")
 
-    async def jugar(interaction: discord.Interaction):
+    async def jugar(self,interaction: discord.Interaction):
         # Responder a la interacción
         user_id = str(interaction.user.id)
         data_users = await load_data(PATH_USERS)

@@ -8,7 +8,7 @@ import asyncio
 
 # --- IMPORTA TUS UTILIDADES ---
 # Asegúrate de que esta ruta sea correcta según tu estructura de proyecto
-from ...utils.data import file_lock, PATH_TRABAJOS
+from utils.data import file_lock, PATH_TRABAJOS
 
 # --- CONSTANTES (Pueden estar aquí o en tu Cog) ---
 JOBS_PAGE_SIZE = 8
