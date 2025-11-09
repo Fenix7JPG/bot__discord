@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from utils.data import load_data, PATH_USERS, save_data
 
-class Example(commands.Cog):
+class Jugar(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -30,4 +30,4 @@ class Example(commands.Cog):
         
 
 async def setup(bot):
-    await bot.add_cog(Example(bot))
+    await bot.add_cog(Jugar(bot))
