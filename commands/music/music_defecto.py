@@ -3,12 +3,12 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-class Music(commands.Cog):
+class PlayF(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="play", description="Reproduce una canción de prueba.")
-    async def play(self, interaction: discord.Interaction):
+    @app_commands.command(name="playf", description="Reproduce una canción de prueba.")
+    async def playf(self, interaction: discord.Interaction):
         """Reproduce una canción de prueba en tu canal de voz."""
         
         # 1. Verificar si el usuario está en un canal de voz
@@ -45,4 +45,4 @@ class Music(commands.Cog):
 
 # --- FUNCIÓN DE CONFIGURACIÓN ---
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Music(bot))
+    await bot.add_cog(PlayF(bot))
