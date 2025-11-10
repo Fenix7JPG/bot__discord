@@ -164,16 +164,56 @@ class Music(commands.Cog):
 
     @app_commands.command(name="stop", description="Detiene la reproducción y limpia la cola.")
     async def stop(self, interaction: discord.Interaction):
-        """Detiene la música y se desconecta."""
-        voice_client = interaction.guild.voice_client
-        if not voice_client:
-            return await interaction.response.send_message("No estoy en un canal de voz.", ephemeral=True)
-        
-        guild_id = interaction.guild.id
-        self.bot.song_queues[guild_id].clear()
-        voice_client.stop()
-        await voice_client.disconnect()
-        await interaction.response.send_message("🛑 Música detenida y me he desconectado.")
+        """Detiene la música y se desconecta con depuración."""
+        print("[STOP DEBUG] Comando /stop recibido.")
+
+        try:
+            # 1. Verificar si el bot está en un canal de voz
+            voice_client = interaction.guild.voice_client
+            print(f"[STOP DEBUG] voice_client es: {voice_client}")
+
+            if not voice_client:
+                print("[STOP DEBUG] El bot no está en un canal de voz.")
+                return await interaction.response.send_message("No estoy en un canal de voz.", ephemeral=True)
+            
+            # 2. Intentar limpiar la cola
+            guild_id = interaction.guild.id
+            print(f"[STOP DEBUG] guild_id es: {guild_id}")
+            print(f"[STOP DEBUG] Colas actuales: {self.bot.song_queues}")
+            
+            # --- PUNTO CLAVE DE VERIFICACIÓN ---
+            if guild_id in self.bot.song_queues:
+                print(f"[STOP DEBUG] Limpiando la cola para el guild {guild_id}.")
+                self.bot.song_queues[guild_id].clear()
+            else:
+                print(f"[STOP DEBUG] ADVERTENCIA: No se encontró una cola para el guild {guild_id}. Creando una vacía.")
+                self.bot.song_queues[guild_id] = deque() # Creamos una para evitar errores futuros
+
+            # 3. Detener la reproducción
+            print("[STOP DEBUG] Ejecutando voice_client.stop()...")
+            voice_client.stop()
+
+            # 4. Desconectarse del canal
+            print("[STOP DEBUG] Ejecutando await voice_client.disconnect()...")
+            await voice_client.disconnect()
+            print("[STOP DEBUG] Desconexión completada.")
+
+            # 5. Enviar mensaje de confirmación
+            await interaction.response.send_message("🛑 Música detenida y me he desconectado.")
+            print("[STOP DEBUG] Mensaje de confirmación enviado.")
+
+        except Exception as e:
+            # --- ATRAPA CUALQUIER ERROR ---
+            print(f"[STOP ERROR] Error crítico en el comando /stop: {e}\n{traceback.format_exc()}")
+            try:
+                # Intenta informar al usuario del error
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(f"Ocurrió un error: `{e}`", ephemeral=True)
+                else:
+                    await interaction.followup.send(f"Ocurrió un error: `{e}`", ephemeral=True)
+            except Exception as e2:
+                print(f"[STOP ERROR] No se pudo informar al usuario del error: {e2}")
+
 
     # --- LÓGICA INTERNA DEL COG ---
 
