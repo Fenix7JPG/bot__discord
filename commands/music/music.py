@@ -88,9 +88,18 @@ class Music(commands.Cog):
                 'noplaylist': True,
                 'quiet': True,
                 'no_warnings': True,
-            }
+                'extractor_args': {
+                'youtube': {
+                    'player_client': 'android', # Finge ser un cliente de Android
+                }
+            },
+            # Usamos una instancia pública de Invidious como extractor principal
+            'default_search': 'ytsearch', # Mantiene la búsqueda funcional
+            # La URL de una instancia de Invidious. Puedes cambiarla si esta falla.
+            'invidious_instance': 'https://yewtu.be', 
+        }
 
-            query = song_query if "youtube.com/watch?v=" in song_query else f"ytsearch1:{song_query}"
+            query = song_query if "youtube.com/watch?v=" in song_query else f"yvsearch:{song_query}"
             if "youtube.com/watch?v=" in song_query:
                 print(f"[MUSIC DEBUG] Procesando URL directa: {query}")
             else:
