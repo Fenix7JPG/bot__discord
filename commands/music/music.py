@@ -88,6 +88,7 @@ class Music(commands.Cog):
                 'noplaylist': True,
                 'quiet': True,
                 'no_warnings': True,
+                'invidious_instance': 'https://yewtu.be', 
                 'extractor_args': {
                 'youtube': {
                     'player_client': 'android', # Finge ser un cliente de Android
