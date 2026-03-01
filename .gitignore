@@ -1,2 +1,6 @@
 # Ignorar variables de entorno
 .env
+
+# Ignorar archivos de configuración específicos del entorno
+.venv/
+venv/

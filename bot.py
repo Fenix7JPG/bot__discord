@@ -10,7 +10,8 @@ keep_alive()
 
 # --- Configuración del Bot ---
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True # Necesario para leer el contenido de los mensajes
+intents.members = True  # Necesario para detectar cuando un miembro se une
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
