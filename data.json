@@ -80,5 +80,14 @@
     "salud": 100,
     "date_disease": null,
     "disease": null
+  },
+  "1080243042692366426": {
+    "dinero": 0,
+    "experiencia": 0,
+    "date_job": null,
+    "job": null,
+    "salud": 100,
+    "date_disease": null,
+    "disease": null
   }
 }
