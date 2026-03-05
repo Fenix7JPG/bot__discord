@@ -1,2 +1,3 @@
 # Ignorar variables de entorno
 .env
+venv/
