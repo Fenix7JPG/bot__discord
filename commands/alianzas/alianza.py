@@ -1,10 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
+import re
 from database.alianzas_repo import add_point, get_alianza_role, get_points, get_position,get_ranking, get_alianza_channel, get_cazador_role
-
-
+import aiohttp
+import asyncio
 
 class Alianzas(commands.Cog):
     def __init__(self, bot):
@@ -14,6 +14,27 @@ class Alianzas(commands.Cog):
         rol_cazador = get_cazador_role(guild_id)
         rol_alianza = get_alianza_role(guild_id)
         return bool(canal and rol_cazador and rol_alianza)
+    
+    async def get_guild_name(self, invite_code: str) -> str | None:
+        """
+        Devuelve el nombre del servidor de un invite de Discord.
+        Retorna None si el invite es inválido o no se puede acceder.
+        """
+        url = f"https://discord.com/api/v10/invites/{invite_code}?with_counts=true"
+        headers = {
+            "Authorization": f"Bot {self.bot.http.token}"  # token del bot
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    guild = data.get("guild")
+                    if guild:
+                        return guild.get("name")
+                return None
+
+
     def embed_alianza_no_configurada(self):
         embed = discord.Embed(
             title="⚠ Sistema de alianzas no configurado",
@@ -34,6 +55,29 @@ class Alianzas(commands.Cog):
         embed.set_footer(text="Un administrador debe configurar el sistema.")
 
         return embed
+    def embed_alianza_invalida(self):
+        embed = discord.Embed(
+            title="❌ Alianza no válida",
+            description="El mensaje enviado no contiene una **invitación válida de Discord**.",
+            color=discord.Color.red()
+        )
+
+        embed.add_field(
+            name="📌 Formato requerido",
+            value=(
+                "Debes enviar un **link de invitación de Discord**.\n\n"
+                "**Ejemplos válidos:**\n"
+                "`https://discord.gg/xxxxx`\n"
+                "`https://discord.com/invite/xxxxx`"
+            ),
+            inline=False
+        )
+
+        embed.set_footer(text="Las alianzas solo se registran con enlaces de invitación.")
+
+        return embed
+    
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
 
@@ -54,6 +98,54 @@ class Alianzas(commands.Cog):
         # Verificar que el autor tenga el rol de cazador
         if not any(role.id == get_cazador_role(message.guild.id) for role in message.author.roles):
             return
+        
+
+
+        # Verificar si hay link de discord
+        INVITE_REGEX = r"(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord\.com\/invite)\/([A-Za-z0-9]+)"
+
+        # Buscar invite en el mensaje
+        match = re.search(INVITE_REGEX, message.content)
+
+        if not match:
+            # No hay invite → mensaje inválido
+            bot_msg = await message.reply(embed=self.embed_alianza_invalida())
+            await asyncio.sleep(8)
+
+            try:
+                await message.delete()
+            except:
+                pass
+
+            try:
+                await bot_msg.delete()
+            except:
+                pass
+
+            return
+
+        # Hay invite → obtener código
+        invite_code = match.group(1)
+        server_name = await self.get_guild_name(invite_code)
+
+        if not server_name:
+            # Invite inválido / expirado
+            bot_msg = await message.reply(embed=self.embed_alianza_invalida())
+            await asyncio.sleep(8)
+
+            try:
+                await message.delete()
+            except:
+                pass
+
+            try:
+                await bot_msg.delete()
+            except:
+                pass
+
+            return
+
+
 
         # sumar punto
         add_point(message.guild.id, message.author.id)
@@ -73,6 +165,11 @@ class Alianzas(commands.Cog):
             value=message.author.mention,
             inline=False
         )
+        embed.add_field(
+            name="💎  Servidor",
+            value=f"**{server_name}**",
+            inline=False
+        )
 
         embed.add_field(
             name="📍 Ranking",
@@ -85,6 +182,7 @@ class Alianzas(commands.Cog):
             value=f"**{puntos}**",
             inline=True
         )
+        
         embed.set_author(
             name=message.author.display_name,
             icon_url=message.author.display_avatar.url
