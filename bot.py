@@ -8,9 +8,12 @@ from pathlib import Path  # Importamos pathlib para manejar rutas de forma robus
 from webserver import keep_alive
 keep_alive()
 
+from database.database import _setup
+_setup()  # Aseguramos que la base de datos esté configurada antes de iniciar el bot
 # --- Configuración del Bot ---
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True # Necesario para leer el contenido de los mensajes
+intents.members = True  # Necesario para detectar cuando un miembro se une
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event

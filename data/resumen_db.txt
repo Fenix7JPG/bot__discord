@@ -1,0 +1,8 @@
+Tabla: guild_config
+Columnas: guild_id, welcome_channel, ticket_channel
+(1477420617065304064, None, 1477420617597718732)
+
+Tabla: alianzas_ranking
+Columnas: guild_id, user_id, puntos
+(1477420617065304064, 748220015052062820, 22)
+
