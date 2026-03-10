@@ -5,18 +5,16 @@ import asyncio
 import yt_dlp
 from collections import deque
 import os
-#discord.utils.setup_logging(level=discord.utils.logging.INFO)
 
 from utils.ffmpeg_path import FFMPEG_PATH
 from utils.cookies_path import COOKIES_PATH
+
 # ─── yt-dlp config ────────────────────────────────────────────────────────────
 YTDL_OPTIONS = {
     "format": "bestaudio/best",
     "quiet": True,
     "no_warnings": True,
     "noplaylist": True,
-    "quiet": False,
-    "verbose": True,
     "extractaudio": True,
     "default_search": "scsearch",
     "cookiefile": COOKIES_PATH,
@@ -35,6 +33,7 @@ FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -protocol_whitelist file,http,https,tcp,tls,crypto,hls,data,m3u8",
     "options": "-vn -bufsize 64k",
 }
+
 
 # ─── Track ────────────────────────────────────────────────────────────────────
 class Track:
@@ -75,18 +74,29 @@ async def get_audio_url(track: Track) -> str:
     loop = asyncio.get_event_loop()
 
     def _extract():
-        opts = {**YTDL_OPTIONS, "format": "http_mp3_1_0/hls_mp3_1_0/hls_opus_0_0"}
+        # Dejar que yt-dlp elija el mejor formato disponible
+        opts = {**YTDL_OPTIONS, "format": "bestaudio/best"}
+
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(track.page_url, download=False)
             if "entries" in info:
                 info = info["entries"][0]
 
-            # Usar directamente la URL del info, sin buscar en formats[]
+            # 1) Intentar URL directa en el objeto raíz
             audio_url = info.get("url")
-            if not audio_url:
-                raise ValueError("No se encontró URL de audio")
 
-            print(f"[DEBUG] URL final: {audio_url[:80]}")
+            # 2) Si no hay, buscar en formats[] el mejor con audio
+            if not audio_url and info.get("formats"):
+                for fmt in reversed(info["formats"]):
+                    if fmt.get("url") and fmt.get("acodec", "none") != "none":
+                        audio_url = fmt["url"]
+                        print(f"[DEBUG] Formato elegido: {fmt.get('format_id')} | ext: {fmt.get('ext')}")
+                        break
+
+            if not audio_url:
+                raise ValueError(f"No se encontró URL de audio para: {track.title}")
+
+            print(f"[DEBUG] URL final ({info.get('ext', '?')}): {audio_url[:80]}")
             return audio_url
 
     return await loop.run_in_executor(None, _extract)
@@ -140,11 +150,11 @@ def embed_queue(queue: deque, current: Track | None) -> discord.Embed:
 # ─── Estado por servidor ──────────────────────────────────────────────────────
 class GuildState:
     def __init__(self):
-        self.queue:        deque[Track]               = deque()
-        self.current:      Track | None               = None
-        self.text_channel: discord.TextChannel | None = None
-        self.stop_flag:    bool                       = False
-        self._playing_lock: asyncio.Lock              = asyncio.Lock()
+        self.queue:         deque[Track]               = deque()
+        self.current:       Track | None               = None
+        self.text_channel:  discord.TextChannel | None = None
+        self.stop_flag:     bool                       = False
+        self._playing_lock: asyncio.Lock               = asyncio.Lock()
 
 
 # ─── Cog ─────────────────────────────────────────────────────────────────────
@@ -185,20 +195,24 @@ class Play(commands.Cog):
                 track         = state.queue.popleft()
                 state.current = track
 
+                # ── Resolver URL de audio ────────────────────────────────
                 try:
                     audio_url = await get_audio_url(track)
-                    print(f"[DEBUG] Audio URL: {audio_url[:100]}")
                 except Exception as e:
                     print(f"[Music] No pude resolver audio de '{track.title}': {e}")
                     await self._announce(state, f"⚠️ No pude reproducir **{track.title}**, saltando...")
                     continue
 
-                done_event = asyncio.Event()
+                # ── Iniciar FFmpeg ───────────────────────────────────────
+                done_event     = asyncio.Event()
+                playback_error = None
 
-                def after(err):
+                def after(err, _done=done_event):
+                    nonlocal playback_error
                     if err:
-                        print(f"[Music] Error FFmpeg: {err}")
-                    self.bot.loop.call_soon_threadsafe(done_event.set)
+                        print(f"[Music] Error FFmpeg en '{track.title}': {err}")
+                        playback_error = err
+                    self.bot.loop.call_soon_threadsafe(_done.set)
 
                 try:
                     source = discord.FFmpegPCMAudio(
@@ -215,11 +229,23 @@ class Play(commands.Cog):
                     await self._announce(state, f"⚠️ Error de audio en **{track.title}**, saltando...")
                     continue
 
+                # ── Anunciar SOLO si FFmpeg arrancó bien ─────────────────
                 await self._announce(state, embed=embed_now_playing(track))
+
+                # ── Esperar a que termine ────────────────────────────────
                 await done_event.wait()
+
+                # ── Reportar error de reproducción si ocurrió ────────────
+                if playback_error:
+                    await self._announce(
+                        state,
+                        f"⚠️ Error durante la reproducción de **{track.title}**: `{playback_error}`",
+                    )
 
                 if state.stop_flag:
                     return
+
+                # Sigue el loop → próxima canción
 
     async def _announce(self, state: GuildState, text: str = None, embed: discord.Embed = None):
         if state.text_channel:

@@ -7,7 +7,7 @@ class Sync(commands.Cog):
         self.bot = bot
 
     # Este comando solo lo puede usar el dueño del bot
-    @commands.command(name="sync", hidden=True)
+    @commands.command(name="sync")
     @commands.is_owner()
     async def sync(self, ctx, scope: str = None):
     
