@@ -9,3 +9,7 @@ cookies.txt
 
 
 venv/
+
+
+# Ignroar carpeta ffmpeg
+commands/music/ffmpeg/
