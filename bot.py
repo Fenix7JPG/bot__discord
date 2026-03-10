@@ -12,8 +12,10 @@ from database.database import _setup
 _setup()  # Aseguramos que la base de datos esté configurada antes de iniciar el bot
 # --- Configuración del Bot ---
 intents = discord.Intents.default()
+intents.guilds = True
 intents.message_content = True # Necesario para leer el contenido de los mensajes
 intents.members = True  # Necesario para detectar cuando un miembro se une
+intents.voice_states = True # Necesario para detectar cambios en el estado de voz (conexión/desconexión)
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event

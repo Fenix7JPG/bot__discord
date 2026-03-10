@@ -1,4 +1,11 @@
-# Ignorar variables de entorno
+
+
+# Cookies (sensible)
+cookies.txt
+
+# Variables de entorno
 .env
+.env.*
+
 
 venv/
