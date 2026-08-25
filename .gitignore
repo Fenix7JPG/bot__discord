@@ -2,14 +2,21 @@
 
 # Cookies (sensible)
 cookies.txt
+legacy/cookies.txt
 
 # Variables de entorno
 .env
 .env.*
 
-
+# Entornos virtuales
 venv/
+.venv/
 
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
 
-# Ignroar carpeta ffmpeg
-commands/music/ffmpeg/
+# Base de datos local
+datos/bot.db
+__pycache__/

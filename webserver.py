@@ -1,15 +1,27 @@
+"""Mini servidor Flask que mantiene despierto el servicio web de Render.
+
+Render asigna un puerto externo; si no hay proceso escuchando, considera el
+servicio caído. Este hilo atiende ese ping mientras el bot corre.
+"""
+
+import os
+import threading
+
 from flask import Flask
-from threading import Thread
 
-app = Flask('')
+app = Flask(__name__)
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    return 'Hola de Flask!'
+    return "El bot está vivo."
 
-def run():
-    app.run(host='0.0.0.0', port=8000)
+
+def _run():
+    port = int(os.getenv("PORT", "8000"))
+    app.run(host="0.0.0.0", port=port)
+
 
 def keep_alive():
-    server = Thread(target=run)
-    server.start()
+    hilo = threading.Thread(target=_run, daemon=True)
+    hilo.start()

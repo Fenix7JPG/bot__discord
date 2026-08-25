@@ -1,9 +1,6 @@
-# render-build.sh
+# render-build.sh: se ejecuta en cada despliegue de Render.
+set -e
 
-set -e # Detener el script si un comando falla
-
-# Actualizar la lista de paquetes del sistema operativo
+# FFmpeg es necesario para música y radio (audio en vivo).
 apt-get update
-
-# Instalar FFmpeg sin pedir confirmación (-y)
 apt-get install -y ffmpeg

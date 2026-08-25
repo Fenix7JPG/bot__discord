@@ -1,59 +1,62 @@
-# bot.py
+"""Punto de entrada del bot.
+
+- Configura intents y sincroniza comandos de barra al conectar.
+- Carga automáticamente todos los cogs dentro de cogs/ (recursivo).
+- Levanta el webserver de keep-alive para Render.
+
+Uso: python bot.py  (requiere DISCORD_TOKEN en el entorno o en .env)
+"""
+
+import asyncio
+from pathlib import Path
+
 import discord
 from discord.ext import commands
-import os
-import asyncio  # Importamos asyncio para manejar el bucle de eventos
-from pathlib import Path  # Importamos pathlib para manejar rutas de forma robusta
 
+from config import settings
+from database.database import db
 from webserver import keep_alive
-keep_alive()
 
-from database.database import _setup
-_setup()  # Aseguramos que la base de datos esté configurada antes de iniciar el bot
-# --- Configuración del Bot ---
-intents = discord.Intents.default()
-intents.guilds = True
-intents.message_content = True # Necesario para leer el contenido de los mensajes
-intents.members = True  # Necesario para detectar cuando un miembro se une
-intents.voice_states = True # Necesario para detectar cambios en el estado de voz (conexión/desconexión)
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+def construir_bot() -> commands.Bot:
+    intents = discord.Intents.default()
+    intents.guilds = True
+    intents.message_content = True   # leer mensajes (IA por mención, ruleta rusa)
+    intents.members = True           # detectar entradas de miembros (bienvenida)
+    intents.voice_states = True      # música y radio
+    return commands.Bot(command_prefix="!", intents=intents)
+
+
+bot = construir_bot()
+
 
 @bot.event
 async def on_ready():
-    print(f'✅ Bot conectado como {bot.user}')
-    await bot.tree.sync() # Sincroniza los comandos de barra
-    print('🔁 Comandos de barra sincronizados.')
-    print('------')
+    print("Bot conectado como", bot.user)
+    await bot.tree.sync()
+    print("Comandos de barra sincronizados.")
 
-# --- Función asíncrona para cargar Cogs ---
+
 async def load_cogs():
-    """Busca y carga todos los Cogs en la carpeta 'commands'."""
-    # Usamos pathlib para encontrar todos los archivos .py de forma recursiva
-    # rglob('*.py') busca en 'commands' y todas sus subcarpetas
-    for filepath in Path('./commands').rglob('*.py'):
-        # Ignoramos el archivo __init__.py
-        if filepath.name == '__init__.py':
+    """Carga todos los archivos .py de cogs/ como extensiones."""
+    for filepath in Path("./cogs").rglob("*.py"):
+        if filepath.name == "__init__.py":
             continue
-
-        # Convertimos la ruta del archivo a un formato de módulo importable
-        # Ejemplo: commands/utils/ping.py -> commands.utils.ping
-        module_path = '.'.join(filepath.parts[:-1] + (filepath.stem,))
-        
+        module_path = ".".join(filepath.parts[:-1] + (filepath.stem,))
         try:
-            # Ahora SÍ podemos usar await porque estamos en una función async
             await bot.load_extension(module_path)
-            print(f'📦 Cargado: {module_path}')
+            print("Cog cargado:", module_path)
         except Exception as e:
-            print(f'❌ No se pudo cargar el cog {module_path} debido a: {e}')
+            print("No se pudo cargar el cog", module_path, ":", e)
 
-# --- Función principal asíncrona ---
+
 async def main():
+    db.setup()  # crear tablas antes de que los cogs pidan datos
+    keep_alive()
     async with bot:
-        await load_cogs()  # Cargamos los cogs antes de iniciar el bot
-        DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-        await bot.start(DISCORD_TOKEN)
+        await load_cogs()
+        await bot.start(settings.discord_token)
 
-# --- Punto de entrada del script ---
-# Ejecutamos la función main usando asyncio.run()
+
 if __name__ == "__main__":
     asyncio.run(main())
