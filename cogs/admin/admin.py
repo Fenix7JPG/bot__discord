@@ -8,7 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import settings
-from utils.datos import PATH_TRABAJOS
+from database.database import db
 
 
 class Admin(commands.Cog):
@@ -32,9 +32,10 @@ class Admin(commands.Cog):
     @commands.command(name="getpaths")
     @commands.is_owner()
     async def getpaths(self, ctx):
-        """Muestra las rutas clave de datos del bot."""
-        await ctx.send("Trabajos: " + str(PATH_TRABAJOS))
-        await ctx.send("Base de datos local: " + settings.db_path)
+        """Muestra la configuracion de datos del bot."""
+        await ctx.send("Trabajos: tabla 'trabajos' en la base de datos")
+        await ctx.send("Enfermedades: tabla 'enfermedades' en la base de datos")
+        await ctx.send("Base de datos local (ruta): " + settings.db_path)
         await ctx.send("Modo de BD: " + db_mode_actual())
 
     @app_commands.command(name="checkffmpeg", description="Revisa que FFmpeg este disponible.")
@@ -71,8 +72,6 @@ class Admin(commands.Cog):
 
 
 def db_mode_actual() -> str:
-    from database.database import db
-
     return db.mode
 
 

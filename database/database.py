@@ -55,6 +55,28 @@ DDL_STATEMENTS = [
         fecha_enfermedad TEXT
     )
     """,
+    # Catalogos de contenido del juego (sembrados por database.catalogos)
+    """
+    CREATE TABLE IF NOT EXISTS trabajos (
+        slug TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        emoji TEXT NOT NULL DEFAULT '',
+        level TEXT NOT NULL,
+        required_experience INTEGER NOT NULL DEFAULT 0,
+        sueldo INTEGER NOT NULL DEFAULT 0
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS enfermedades (
+        slug TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        health_loss INTEGER NOT NULL,
+        duration_days INTEGER NOT NULL,
+        treatment_cost INTEGER NOT NULL DEFAULT 0,
+        description TEXT NOT NULL DEFAULT ''
+    )
+    """,
 ]
 
 DDL_INDICES = [
@@ -243,17 +265,36 @@ class Database:
     def connect(self):
         if self.mode == "turso":
             return TursoConnection(settings.turso_url, settings.turso_auth_token)
+        # En local, garantizar que exista el directorio del archivo
+        import os
+
+        carpeta = os.path.dirname(settings.db_path)
+        if carpeta:
+            os.makedirs(carpeta, exist_ok=True)
         conn = sqlite3.connect(settings.db_path)
         conn.row_factory = sqlite3.Row
         return _SQLiteCompat(conn)
 
     def setup(self):
-        """Crea las tablas si no existen (idempotente)."""
+        """Crea las tablas si no existen y siembra catalogos vacios."""
         with self.connect() as conn:
             for ddl in DDL_STATEMENTS:
                 conn.execute(ddl)
             for idx in DDL_INDICES:
                 conn.execute(idx)
+
+        # Los catalogos (trabajos/enfermedades) se siembran solo la primera
+        # vez; si ya tienen filas no se tocan para respetar ediciones manuales.
+        from database.catalogos import poblar_catalogos
+
+        with self.connect() as conn:
+            conn.execute("SELECT COUNT(*) AS n FROM trabajos")
+            hay_trabajos = conn.fetchone()["n"] > 0
+            conn.execute("SELECT COUNT(*) AS n FROM enfermedades")
+            hay_enfermedades = conn.fetchone()["n"] > 0
+
+        if not hay_trabajos or not hay_enfermedades:
+            poblar_catalogos()
 
 
 class _SQLiteCompat:

@@ -40,6 +40,15 @@ días de duración y costo de tratamiento. El trabajo adelantado usa una muestra
 aleatoria; /curarse cobra según la vida recuperada: costo = hp * 5 + hp^2 *
 0.20 (curar mucho cuesta progresivamente más).
 
+## Datos
+
+- La base local `datos/bot.db` ya fue migrada a Turso (perfiles, ranking y
+  configuración del servidor) y la carpeta `datos/` se eliminó: todo dato del
+  juego vive en la BD.
+- Los catálogos de contenido (trabajos, enfermedades) también son tablas de
+  la BD; su definición generadora vive en `database/catalogos.py` y se
+  siembra sola en el primer arranque.
+
 ## Ideas pendientes (del info.txt original)
 
 - Sistema de "slut" mencionado en info.txt sin especificar: no se implementó.

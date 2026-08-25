@@ -1,37 +1,25 @@
-"""Utilidades compartidas por varios cogs."""
+"""Acceso a los catalogos del juego: trabajos y enfermedades.
 
-import json
-import os
-from pathlib import Path
+Los datos viven en la base de datos (tablas trabajos y enfermedades, sembradas
+por database.catalogos). Esta capa ofrece busquedas y normalizacion sobre
+esos catalogos con cache en memoria.
+"""
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATOS_DIR = BASE_DIR / "datos"
-
-PATH_TRABAJOS = DATOS_DIR / "trabajos.json"
-PATH_ENFERMEDADES = DATOS_DIR / "enfermedades.json"
-
-
-def cargar_json(path) -> dict | list:
-    """Lee un JSON de datos/. Devuelve {} si no existe o está corrupto."""
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return {}
+from database import catalogos
 
 
 def obtener_trabajos() -> list[dict]:
-    """Devuelve la lista de trabajos normalizada."""
-    data = cargar_json(PATH_TRABAJOS)
-    if isinstance(data, dict):
-        return data.get("jobs", [])
-    if isinstance(data, list):
-        return data
-    return []
+    """Lista completa de trabajos desde la BD."""
+    return catalogos.cargar_trabajos()
+
+
+def obtener_enfermedades() -> list[dict]:
+    """Lista completa de enfermedades desde la BD."""
+    return catalogos.cargar_enfermedades()
 
 
 def buscar_trabajo(nombre_o_slug: str) -> dict | None:
-    """Busca un trabajo por slug o por nombre (sin distinguir mayúsculas)."""
+    """Busca un trabajo por slug o por nombre (sin distinguir mayusculas)."""
     objetivo = nombre_o_slug.strip().lower()
     for job in obtener_trabajos():
         slug = str(job.get("slug", "")).lower()
@@ -41,15 +29,8 @@ def buscar_trabajo(nombre_o_slug: str) -> dict | None:
     return None
 
 
-def obtener_enfermedades() -> list[dict]:
-    data = cargar_json(PATH_ENFERMEDADES)
-    if isinstance(data, dict):
-        return data.get("diseases", [])
-    return []
-
-
 def sueldo_base(job: dict) -> int:
-    """Sueldo del trabajo; 0 si no está definido."""
+    """Sueldo del trabajo; 0 si no esta definido."""
     for clave in ("sueldo", "salary", "pay", "income", "wage"):
         valor = job.get(clave)
         if valor is not None:

@@ -15,7 +15,7 @@ def cog(db_local):
 
 
 @pytest.fixture()
-def trabajos_reales():
+def trabajos_reales(db_local):
     return datos.obtener_trabajos()
 
 

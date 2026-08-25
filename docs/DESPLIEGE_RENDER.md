@@ -23,12 +23,10 @@ check en el puerto que Render asigna (variable PORT).
 
 ## Notas importantes
 
-- El plan gratuito de Render duerme el servicio por inactividad; el Flask del
-  keep_alive responde los pings pero no impide el sleep de un worker. Si el
-  bot se desconecta mucho, considera un plan pago o un cron externo que haga
-  ping al health check.
 - La base Turso es remota y persistente: aunque Render reinicie el servicio,
-  el dinero/XP/configuración de los servidores no se pierde.
+  el dinero/XP/configuración de los servidores no se pierde. Los catálogos
+  (trabajos/enfermedades) también son tablas de la BD y se siembran solos
+  en el primer arranque.
 - Para crear el token de Turso: turso db tokens create <nombre-db> o desde el
   dashboard de la base, pestaña Tokens.
 - Verifica la conexión antes de desplegar: `python scripts/probar_db.py`
