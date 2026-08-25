@@ -16,6 +16,7 @@ import os
 import secrets
 import sys
 import threading
+import traceback
 from collections import deque
 
 from flask import Flask, request
@@ -97,6 +98,9 @@ def instalar_captura_logs() -> None:
 # ---------------------------------------------------------------------------
 # Paginas
 # ---------------------------------------------------------------------------
+# IMPORTANTE: el contenido dinamico (registros) se inserta por CONCATENACION,
+# nunca con .format(): los registros suelen contener llaves { } y .format()
+# intentaria interpretarlas como variables (causa de un Internal Server Error).
 
 _ESTILO = (
     "<style>"
@@ -109,16 +113,16 @@ _ESTILO = (
     "</style>"
 )
 
-_PAGINA_FORM = """<!doctype html><html><head><meta charset="utf-8">
-<title>Bot - estado</title>{estilo}</head><body>
-<h2>El bot esta vivo.</h2>
-<p>Aqui no hay nada que ver. Si eres el administrador, escribe la contrasena
-para abrir la terminal.</p>
-<form method="post" action="/terminal">
-<input type="password" name="clave" placeholder="contrasena" autofocus>
-<button type="submit">Abrir terminal</button>
-{error}
-</form></body></html>"""
+_CABEZA_FORM = (
+    '<!doctype html><html><head><meta charset="utf-8">'
+    "<title>Bot - estado</title>" + _ESTILO + "</head><body>"
+    "<h2>El bot esta vivo.</h2>"
+    "<p>Aqui no hay nada que ver. Si eres el administrador, escribe la contrasena "
+    "para abrir la terminal.</p>"
+    '<form method="post" action="/terminal">'
+    '<input type="password" name="clave" placeholder="contrasena" autofocus>'
+    '<button type="submit">Abrir terminal</button>'
+)
 
 
 @app.route("/")
@@ -128,24 +132,43 @@ def index():
 
 @app.route("/terminal", methods=["GET", "POST"])
 def terminal():
+    try:
+        return _pagina_terminal()
+    except Exception:
+        # Ante cualquier imprevisto, registrar el traceback en el propio
+        # visor y responder sin romper.
+        _agregar_linea("[visor] ERROR interno en /terminal:")
+        _agregar_linea(traceback.format_exc())
+        return (
+            '<!doctype html><html><head><meta charset="utf-8">'
+            "<title>Error</title>" + _ESTILO + "</head><body>"
+            '<p class="error">Ocurrio un error mostrando la terminal; '
+            "el detalle quedo registrado. Vuelve a intentar en unos segundos.</p>"
+            '<p><a href="/">Volver</a></p></body></html>'
+        )
+
+
+def _pagina_terminal():
     clave = request.form.get("clave", "")
     if not clave:
         # GET o formulario vacio: mostrar el formulario
-        return _PAGINA_FORM.format(estilo=_ESTILO, error="")
+        return _CABEZA_FORM + "</form></body></html>"
 
     if not _clave_valida(clave):
-        return _PAGINA_FORM.format(
-            estilo=_ESTILO,
-            error='<p class="error">Contrasena incorrecta.</p>',
+        return _CABEZA_FORM + (
+            '<p class="error">Contrasena incorrecta.</p></form></body></html>'
         )
 
-    lineas = html.escape("\n".join(leer_lineas())) or "(sin registros todavia)"
-    pagina = """<!doctype html><html><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="5">
-<title>Terminal del bot</title>{estilo}</head><body>
-<p>Actualizacion automatica cada 5 segundos. <a href="/">Volver</a></p>
-<div class="term">{lineas}</div>
-</body></html>""".format(estilo=_ESTILO, lineas=lineas)
+    registros = html.escape("\n".join(leer_lineas())) or "(sin registros todavia)"
+    pagina = (
+        '<!doctype html><html><head><meta charset="utf-8">'
+        '<meta http-equiv="refresh" content="5">'
+        "<title>Terminal del bot</title>" + _ESTILO + "</head><body>"
+        "<p>Actualizacion automatica cada 5 segundos. "
+        '<a href="/">Volver</a></p>'
+        '<div class="term">' + registros + "</div>"
+        "</body></html>"
+    )
     return pagina
 
 
@@ -153,7 +176,24 @@ def _clave_valida(clave: str) -> bool:
     esperada = settings.log_password
     if not esperada:
         return False  # sin contrasena configurada, terminal cerrada
-    return secrets.compare_digest(clave, esperada)
+    # comparar en bytes para tolerar cualquier caracter raro sin excepciones
+    return secrets.compare_digest(
+        clave.encode("utf-8"), esperada.encode("utf-8")
+    )
+
+
+@app.errorhandler(500)
+def _manejador_500(error):
+    _agregar_linea("[visor] Internal Server Error capturado:")
+    _agregar_linea(traceback.format_exc())
+    return (
+        '<!doctype html><html><head><meta charset="utf-8">'
+        "<title>Error</title>" + _ESTILO + "</head><body>"
+        '<p class="error">Error interno; el detalle quedo registrado en el visor.</p>'
+        '<p>Abre <a href="/terminal">/terminal</a> con tu contrasena para verlo.</p>'
+        '<p><a href="/">Volver</a></p></body></html>',
+        500,
+    )
 
 
 def _run():
