@@ -15,7 +15,7 @@ from discord.ext import commands
 
 from config import settings
 from database.database import db
-from webserver import keep_alive
+from webserver import instalar_captura_logs, keep_alive
 
 
 def construir_bot() -> commands.Bot:
@@ -51,8 +51,10 @@ async def load_cogs():
 
 
 async def main():
+    instalar_captura_logs()  # capturar prints/logs para el visor /terminal
     db.setup()  # crear tablas antes de que los cogs pidan datos
     keep_alive()
+    print("Iniciando bot; modo de BD:", db.mode)
     async with bot:
         await load_cogs()
         await bot.start(settings.discord_token)
