@@ -59,13 +59,13 @@ async def test_cat_envia_embed_con_imagen(cog, monkeypatch):
 
 
 async def test_cat_prueba_la_siguiente_fuente_si_una_falla(cog, monkeypatch):
-    """Si la primera API falla usa la segunda (random.cat devuelve 'file')."""
+    """Si thecatapi falla usa cataas (que antepone su dominio a la ruta)."""
     _sesion_falsa(
         monkeypatch,
         cog,
         [
             {"status": 500},
-            {"status": 200, "json": {"file": "https://random.cat/gato.png"}},
+            {"status": 200, "json": {"url": "/gato.png"}},
         ],
     )
     inter = FabricaInteraccion.interaccion(user_id=1)
@@ -73,7 +73,7 @@ async def test_cat_prueba_la_siguiente_fuente_si_una_falla(cog, monkeypatch):
     await FabricaInteraccion.invocar(cog, "cat", inter)
 
     embed = inter.followup.mensajes[0]["embed"]
-    assert embed.image.url == "https://random.cat/gato.png"
+    assert embed.image.url == "https://cataas.com/gato.png"
 
 
 async def test_cat_sin_ninguna_fuente_disponible_avisa(cog):
