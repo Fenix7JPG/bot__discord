@@ -13,12 +13,21 @@ from discord.ext import commands
 # Timeout total por fuente: peor caso 3 fuentes x 6s = 18s maximo esperando.
 TIMEOUT_POR_FUENTE = aiohttp.ClientTimeout(total=6)
 
+
+def _url_cataas(datos: dict) -> str:
+    """cataas a veces devuelve ruta relativa y a veces URL absoluta."""
+    ruta = datos.get("url", "")
+    if ruta.startswith("http"):
+        return ruta
+    return "https://cataas.com" + ruta
+
+
 # Cada entrada es (url, extractor). El extractor saca la URL de la imagen
 # desde la respuesta JSON de cada API. random.cat quedo al final porque
 # lleva tiempo caida; se conserva como ultima opcion.
 FUENTES = [
     ("https://api.thecatapi.com/v1/images/search", lambda datos: datos[0]["url"]),
-    ("https://cataas.com/cat?json=true", lambda datos: "https://cataas.com" + datos["url"]),
+    ("https://cataas.com/cat?json=true", _url_cataas),
     ("https://aws.random.cat/meow", lambda datos: datos["file"]),
 ]
 

@@ -59,7 +59,25 @@ async def test_cat_envia_embed_con_imagen(cog, monkeypatch):
 
 
 async def test_cat_prueba_la_siguiente_fuente_si_una_falla(cog, monkeypatch):
-    """Si thecatapi falla usa cataas (que antepone su dominio a la ruta)."""
+    """Si thecatapi falla usa cataas; su URL absoluta no se debe duplicar."""
+    _sesion_falsa(
+        monkeypatch,
+        cog,
+        [
+            {"status": 500},
+            {"status": 200, "json": {"url": "https://cataas.com/cat/abc?position=center"}},
+        ],
+    )
+    inter = FabricaInteraccion.interaccion(user_id=1)
+
+    await FabricaInteraccion.invocar(cog, "cat", inter)
+
+    embed = inter.followup.mensajes[0]["embed"]
+    assert embed.image.url == "https://cataas.com/cat/abc?position=center"
+
+
+async def test_cat_cataas_con_ruta_relativa_la_completa(cog, monkeypatch):
+    """Si cataas devuelve ruta relata se le antepone el dominio."""
     _sesion_falsa(
         monkeypatch,
         cog,
