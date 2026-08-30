@@ -227,5 +227,28 @@ def _run():
 
 
 def keep_alive():
+    """Registra el dashboard en la app y levanta el servidor en un hilo."""
+    try:
+        from services.dashboard import panel as panel_blueprint
+        from services.dashboard import auth as panel_auth
+
+        if not app.secret_key:
+            app.secret_key = panel_auth.clave_firma()
+        if panel_blueprint.name not in app.blueprints:
+            app.register_blueprint(panel_blueprint)
+            print("[panel] dashboard registrado en /panel")
+    except Exception as e:
+        print("[panel] no se pudo registrar el dashboard:", e)
+
     hilo = threading.Thread(target=_run, daemon=True)
     hilo.start()
+
+
+def registrar_bot(bot) -> None:
+    """Registra el bot para que el panel sepa en que servidores esta."""
+    try:
+        from services.dashboard import registrar_bot as registrar_en_panel
+
+        registrar_en_panel(bot)
+    except Exception as e:
+        print("[panel] no se pudo registrar el bot en el panel:", e)

@@ -109,3 +109,47 @@ async def test_postularse_busca_por_nombre_completo(cog, jugador):
     )
 
     assert jugadores_repo.get_jugador(111)["trabajo"] == SLUG
+
+
+# ---------------------------------------------------------------------------
+# Suerte configurable por servidor (feature 001)
+# ---------------------------------------------------------------------------
+
+
+def _interaccion_con_guild(user_id):
+    from tests.fakes import FabricaInteraccion as F
+
+    guild = F.servidor(guild_id=100)
+    return F.interaccion(user_id=user_id, guild=guild)
+
+
+async def test_postularse_suerte_100_acepta_siempre(cog, jugador, monkeypatch):
+    """Con lucky_chance=100 del servidor entra aunque falle el roll normal."""
+    from database import servidor_repo
+
+    servidor_repo.set_economia(100, {"lucky_chance": 100}, actor_id=1, actor_name="t")
+    monkeypatch.setattr(modulo_random, "random", lambda: 0.99)
+    inter = _interaccion_con_guild(111)
+
+    await FabricaInteraccion.invocar(cog, "postularse_trabajo", inter, trabajo=SLUG)
+
+    contenido = inter.response.mensajes[0]["content"]
+    assert "Felicidades" in contenido
+    assert "100%" in contenido
+    assert jugadores_repo.get_jugador(111)["trabajo"] == SLUG
+
+
+async def test_postularse_suerte_0_rechaza_siempre(cog, jugador, monkeypatch):
+    """Con lucky_chance=0 del servidor no hay suerte posible."""
+    from database import servidor_repo
+
+    servidor_repo.set_economia(100, {"lucky_chance": 0}, actor_id=1, actor_name="t")
+    monkeypatch.setattr(modulo_random, "random", lambda: 0.0)
+    inter = _interaccion_con_guild(111)
+
+    await FabricaInteraccion.invocar(cog, "postularse_trabajo", inter, trabajo=SLUG)
+
+    contenido = inter.response.mensajes[0]["content"]
+    assert "No te aceptaron" in contenido
+    assert "0%" in contenido
+    assert jugadores_repo.get_jugador(111)["trabajo"] is None

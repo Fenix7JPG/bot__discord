@@ -21,6 +21,20 @@ check en el puerto que Render asigna (variable PORT).
    - YT_COOKIES_FILE=/etc/secrets/youtube_cookies.txt y un Secret File con las
      cookies exportadas en formato Netscape, si /ytmp3 o /play dan bloqueos
 
+7. Dashboard web (/panel), variables nuevas:
+   - DISCORD_CLIENT_ID y DISCORD_CLIENT_SECRET: credenciales OAuth2 de la
+     aplicacion del bot (portal de desarrolladores de Discord).
+   - DASHBOARD_PUBLIC_URL: URL publica del servicio de Render (ej.
+     https://mi-bot.onrender.com). La redirect URI a registrar en el portal es
+     DASHBOARD_PUBLIC_URL + /panel/callback
+   - DASHBOARD_SECRET: cadena larga y aleatoria para firmar la sesion del panel
+     (si falta usa LOG_PASSWORD, y si tampoco hay, una aleatoria por proceso).
+   Con el login (scope identify + guilds) el panel lista solo los servidores
+   donde el usuario es administrador y el bot esta presente; desde ahi se
+   editan la economia/trabajos (modo de trabajo, minijuego, turnos, sesiones
+   por dia, riesgos) y los ajustes generales (bienvenida, tickets, alianzas).
+   Cada guardado queda en la tabla config_audit con autor y valores.
+
 ## Notas importantes
 
 - La base Turso es remota y persistente: aunque Render reinicie el servicio,

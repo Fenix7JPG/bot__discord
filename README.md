@@ -30,8 +30,13 @@ database/
     servidor_repo.py   Configuración por servidor y ranking de alianzas
 services/
     ia.py              Cliente de IA (Cohere)
+    turnos_trabajo.py  Motor de turnos de trabajo (pagos, limites, riesgo)
+    minijuegos.py      Generadores de preguntas: calculo y memoria
+    dashboard/         Panel web (/panel): OAuth2, config y auditoria
 utils/
     datos.py           Lectura y búsqueda sobre los catálogos en la BD
+web/
+    panel.css, panel.js   Tema y logica del panel (HTML/CSS/JS puro)
 tests/                 Suite pytest automática (sin red ni Discord real)
 docs/                  Documentación extra (despliegue, ideas del juego)
 legacy/                Código viejo conservado como referencia. NO se usa.
@@ -43,9 +48,10 @@ scripts/               Utilidades: migrar datos locales a Turso, probar conexió
 | Comando | Qué hace |
 | --- | --- |
 | /jugar | Registra tu perfil del juego |
-| /trabajos | Lista paginada de trabajos disponibles |
-| /postularse-trabajo | Postúlate a un trabajo (según tu XP) |
-| /work | Trabaja: dinero + XP; cada 24h; antes = riesgo de enfermedad |
+| /trabajos | Lista paginada con sueldo por sesion, turnos, riesgo y XP requerida |
+| /postularse-trabajo | Postúlate a un trabajo (según tu XP y la suerte del servidor) |
+| /renunciar-trabajo | Deja tu profesion actual (con confirmacion) |
+| /work | Trabaja: sesion de minijuego por turnos con botones (limite diario) o modo 24h clasico, segun config del servidor |
 | /stats | Tu dinero, XP, trabajo y salud |
 | /curarse | Cura salud gastando dinero |
 | /blackjack, /ruleta, /ruleta-rusa, /d6, /d10, /d20 | Juegos |
@@ -55,6 +61,21 @@ scripts/               Utilidades: migrar datos locales a Turso, probar conexió
 | /setwelcome, /setticket, /setalianzachannel | Configuración (admins) |
 | /confesion | Confesión anónima |
 | /ytmp3 | Descarga audio de YouTube como MP3 |
+
+## Dashboard web (/panel)
+
+El mismo servidor Flask del bot sirve un panel de configuracion en `/panel`:
+
+- Login con Discord (OAuth2): solo ves servidores donde eres administrador y
+  el bot esta presente. Variables: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET,
+  DASHBOARD_PUBLIC_URL y DASHBOARD_SECRET (ver .env.example).
+- Economia y trabajos por servidor: modo de trabajo (turnos estilo Nekotina o
+  cooldown clasico de 24h), minijuego (calculo o memoria), turnos por sesion,
+  sesiones por dia, riesgo de salud por fallo y probabilidad de entrada sin
+  requisitos.
+- Ajustes generales: canal de bienvenida, categoria de tickets y canal de
+  alianzas (los mismos que los comandos /set...).
+- Auditoria: cada guardado registra autor, valores anteriores y nuevos.
 
 ## Requisitos
 
@@ -85,10 +106,13 @@ Todo vive en la base de datos (local o Turso, según el modo):
 
 | Tabla | Contenido |
 | --- | --- |
-| jugadores | Perfiles: dinero, XP, trabajo, salud, enfermedad |
-| trabajos | Catálogo de 101 puestos en 4 niveles |
+| jugadores | Perfiles: dinero, XP, trabajo, salud, enfermedad, sesiones del dia |
+| trabajos | Catálogo de 101 puestos en 4 niveles (turnos sugeridos y riesgo incluidos) |
 | enfermedades | Catálogo de 10 enfermedades del juego |
 | guild_config | Configuración por servidor (canales y roles) |
+| server_economy_config | Economia por servidor: modo, minijuego, turnos, riesgos |
+| config_audit | Auditoria de cambios de configuracion (autor y valores) |
+| dashboard_accounts | Cuentas de Discord vinculadas al panel |
 | alliance_ranking | Ranking de cazadores de alianzas |
 
 Los catálogos se siembran automáticamente la primera vez que arranca el bot

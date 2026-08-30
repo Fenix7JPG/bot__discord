@@ -77,6 +77,49 @@ DDL_STATEMENTS = [
         description TEXT NOT NULL DEFAULT ''
     )
     """,
+    # Configuracion de economia por servidor (feature 001-dashboard-trabajos)
+    """
+    CREATE TABLE IF NOT EXISTS server_economy_config (
+        guild_id INTEGER PRIMARY KEY,
+        work_mode TEXT NOT NULL DEFAULT 'turnos',
+        minigame TEXT NOT NULL DEFAULT 'calculo',
+        turns_per_session INTEGER NOT NULL DEFAULT 3,
+        sessions_per_day INTEGER NOT NULL DEFAULT 2,
+        health_loss_chance INTEGER NOT NULL DEFAULT 35,
+        lucky_chance INTEGER NOT NULL DEFAULT 30
+    )
+    """,
+    # Auditoria de cambios de configuracion hechos desde el dashboard
+    """
+    CREATE TABLE IF NOT EXISTS config_audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id INTEGER NOT NULL,
+        actor_id INTEGER,
+        actor_name TEXT NOT NULL DEFAULT '',
+        campo TEXT NOT NULL,
+        valor_anterior TEXT NOT NULL DEFAULT '',
+        valor_nuevo TEXT NOT NULL DEFAULT '',
+        fecha TEXT NOT NULL
+    )
+    """,
+    # Cuentas de Discord vinculadas al dashboard via OAuth2
+    """
+    CREATE TABLE IF NOT EXISTS dashboard_accounts (
+        discord_id INTEGER PRIMARY KEY,
+        username TEXT NOT NULL DEFAULT '',
+        ultimo_login TEXT NOT NULL DEFAULT ''
+    )
+    """,
+]
+
+# Cambios aditivos sobre tablas existentes. SQLite/libsql no soportan
+# ADD COLUMN IF NOT EXISTS: se ejecutan con try/except ignorando el error
+# de columna duplicada (idempotente en ambos motores).
+ALTER_STATEMENTS = [
+    "ALTER TABLE jugadores ADD COLUMN dia_ultimo_trabajo TEXT",
+    "ALTER TABLE jugadores ADD COLUMN sesiones_hoy INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE trabajos ADD COLUMN turnos_sugeridos INTEGER",
+    "ALTER TABLE trabajos ADD COLUMN es_riesgoso INTEGER",
 ]
 
 DDL_INDICES = [
@@ -282,6 +325,15 @@ class Database:
                 conn.execute(ddl)
             for idx in DDL_INDICES:
                 conn.execute(idx)
+            # ALTER aditivos: si la columna ya existe el motor lo informa y
+            # se ignora (idempotente). Turso integra cada statement de a uno.
+            for alter in ALTER_STATEMENTS:
+                try:
+                    conn.execute(alter)
+                except Exception as e:
+                    mensaje = str(e).lower()
+                    if "duplicate column" not in mensaje and "ya existe" not in mensaje:
+                        raise
 
         # Los catalogos (trabajos/enfermedades) se siembran solo la primera
         # vez; si ya tienen filas no se tocan para respetar ediciones manuales.
@@ -295,6 +347,12 @@ class Database:
 
         if not hay_trabajos or not hay_enfermedades:
             poblar_catalogos()
+
+        # Los atributos nuevos de trabajos (turnos/riesgo) se rellenan siempre
+        # que falten, incluso si el catalogo ya estaba sembrado.
+        from database.catalogos import enriquecer_trabajos
+
+        enriquecer_trabajos()
 
 
 class _SQLiteCompat:

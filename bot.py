@@ -15,7 +15,7 @@ from discord.ext import commands
 
 from config import settings
 from database.database import db
-from webserver import instalar_captura_logs, keep_alive
+from webserver import instalar_captura_logs, keep_alive, registrar_bot
 
 
 def construir_bot() -> commands.Bot:
@@ -54,6 +54,7 @@ async def main():
     instalar_captura_logs()  # capturar prints/logs para el visor /terminal
     db.setup()  # crear tablas antes de que los cogs pidan datos
     keep_alive()
+    registrar_bot(bot)  # el panel necesita saber en que servidores esta el bot
     print("Iniciando bot; modo de BD:", db.mode)
     async with bot:
         await load_cogs()

@@ -105,6 +105,34 @@ def generar_trabajos_desde_chambas(ruta=RUTA_CHAMBAS) -> list[dict]:
     return jobs
 
 
+def enriquecer_trabajos():
+    """Rellena turnos_sugeridos y es_riesgoso de trabajos que no los tengan.
+
+    Idempotente: solo toca filas con esos campos en NULL. Se llama desde
+    poblar_catalogos y tambien desde db.setup() para cubrir bases remotas
+    (Turso) donde el catalogo ya existe y poblar_catalogos no corre.
+    """
+    from database.database import db
+
+    reglas_nivel = {
+        "mediocre": (2, 0),
+        "bajo": (2, 0),
+        "medio": (3, 1),
+        "alto": (4, 1),
+    }
+    with db.connect() as conn:
+        for nivel, (turnos, riesgoso) in reglas_nivel.items():
+            conn.execute(
+                """
+                UPDATE trabajos
+                SET turnos_sugeridos = ?, es_riesgoso = ?
+                WHERE level = ? AND (turnos_sugeridos IS NULL OR es_riesgoso IS NULL)
+                """,
+                (turnos, riesgoso, nivel),
+            )
+    limpiar_cache()
+
+
 def poblar_catalogos():
     """Siembra o actualiza los catalogos en la base de datos activa."""
     from database.database import db
@@ -134,6 +162,11 @@ def poblar_catalogos():
                 ),
             )
 
+    enriquecer_trabajos()
+
+    from database.database import db as _db
+
+    with _db.connect() as conn:
         for enf in ENFERMEDADES:
             conn.execute(
                 """
@@ -185,7 +218,11 @@ def cargar_trabajos() -> list[dict]:
 
     with db.connect() as conn:
         conn.execute(
-            "SELECT slug, name, emoji, level, required_experience, sueldo FROM trabajos"
+            """
+            SELECT slug, name, emoji, level, required_experience, sueldo,
+                   turnos_sugeridos, es_riesgoso
+            FROM trabajos
+            """
         )
         _trabajos_cache = conn.fetchall()
     return _trabajos_cache

@@ -38,6 +38,8 @@ def actualizar_campo(user_id: int, campo: str, valor) -> None:
         "salud",
         "enfermedad",
         "fecha_enfermedad",
+        "dia_ultimo_trabajo",
+        "sesiones_hoy",
     )
     if campo not in permitidos:
         raise ValueError("Campo no permitido: " + str(campo))
@@ -65,4 +67,6 @@ CAMPOS_INICIALES = {
     "salud": 100,
     "enfermedad": None,
     "fecha_enfermedad": None,
+    "dia_ultimo_trabajo": None,
+    "sesiones_hoy": 0,
 }

@@ -44,6 +44,8 @@ class VistaTrabajos(discord.ui.View):
             nombre = str(job.get("name", "Desconocido"))
             emoji = str(job.get("emoji", ""))
             titulo = nombre if not emoji else emoji + " " + nombre
+            turnos = int(job.get("turnos_sugeridos") or 3)
+            riesgoso = "Si" if int(job.get("es_riesgoso") or 0) else "No"
             valor = (
                 "Nivel: **"
                 + str(job.get("level", "?"))
@@ -51,6 +53,11 @@ class VistaTrabajos(discord.ui.View):
                 + str(datos.experiencia_requerida(job))
                 + "** - Sueldo: **$"
                 + str(datos.sueldo_base(job))
+                + " por sesion**\n"
+                + "Turnos: **"
+                + str(turnos)
+                + "** - Riesgo: **"
+                + riesgoso
                 + "**"
             )
             embed.add_field(name=titulo, value=valor, inline=False)

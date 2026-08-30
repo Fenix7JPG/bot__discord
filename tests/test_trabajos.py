@@ -106,6 +106,37 @@ async def test_boton_cerrar_deshabilita_todo(vista_factory):
     assert edicion["embed"] is None
 
 
+# ---------------------------------------------------------------------------
+# Datos Nekotina por profesion (feature 001)
+# ---------------------------------------------------------------------------
+
+
+def test_vista_muestra_turnos_riesgo_y_sueldo_por_nivel(trabajos_reales):
+    """Cada profesion lista su salario por sesion, turnos sugeridos y riesgo."""
+    uno_por_nivel = {}
+    for job in trabajos_reales:
+        uno_por_nivel.setdefault(str(job.get("level")), job)
+    elegidos = [
+        uno_por_nivel["mediocre"],
+        uno_por_nivel["medio"],
+        uno_por_nivel["alto"],
+    ]
+
+    vista = VistaTrabajos(elegidos, autor_id=1)
+    embed = vista.construir_embed()
+    valores = [field.value for field in embed.fields]
+
+    assert any("Turnos: **2**" in v and "Riesgo: **No**" in v for v in valores), \
+        "mediocre/bajo: 2 turnos y sin riesgo"
+    assert any("Turnos: **3**" in v and "Riesgo: **Si**" in v for v in valores), \
+        "medio: 3 turnos y riesgoso"
+    assert any("Turnos: **4**" in v and "Riesgo: **Si**" in v for v in valores), \
+        "alto: 4 turnos y riesgoso"
+    assert all("Sueldo: **$" in v and "por sesion" in v for v in valores), \
+        "el salario por sesion sigue visible"
+    assert all("XP requerida:" in v for v in valores), "el requisito sigue visible"
+
+
 async def test_interaction_check_bloquea_a_otro_usuario(vista_factory):
     """Solo quien abrio la lista puede pulsar los botones."""
     vista, _ = vista_factory()

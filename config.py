@@ -39,5 +39,11 @@ class Settings:
         )
         self.turso_auth_token = os.getenv("TURSO_AUTH_TOKEN", "")
 
+        # Dashboard web (/panel): OAuth2 de Discord y sesiones firmadas
+        self.discord_client_id = os.getenv("DISCORD_CLIENT_ID", "")
+        self.discord_client_secret = os.getenv("DISCORD_CLIENT_SECRET", "")
+        self.dashboard_public_url = os.getenv("DASHBOARD_PUBLIC_URL", "").rstrip("/")
+        self.dashboard_secret = os.getenv("DASHBOARD_SECRET", "")
+
 
 settings = Settings()

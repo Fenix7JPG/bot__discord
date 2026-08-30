@@ -1,4 +1,14 @@
-"""Cog /work: trabajar para ganar dinero y experiencia (cooldown de 24h)."""
+"""Cog /work: trabajar con turnos estilo Nekotina o cooldown clasico.
+
+El modo lo decide la configuracion de economia del servidor
+(server_economy_config.work_mode, editable desde el dashboard):
+- 'turnos' (default): sesion de minijuego con botones, pagos por acierto,
+  limite de sesiones por dia UTC y riesgo de salud en trabajos riesgosos.
+- 'cooldown': el flujo historico de 24 horas (se conserva intacto).
+
+La logica de turnos vive en services/turnos_trabajo; este cog solo
+interpreta interacciones, guarda el contador diario y edita mensajes.
+"""
 
 import random
 from datetime import datetime, timedelta, timezone
@@ -7,12 +17,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from database import jugadores_repo
+from cogs.economia.vistas_trabajo import VistaTurno
+from database import jugadores_repo, servidor_repo
+from services import turnos_trabajo
 from utils import datos
 
 COOLDOWN_HORAS = 24
 DIAS_LIMITE_ENFERMEDAD = 3
-SUELDO_DE_RESERVA = 50  # si el trabajo ya no esta en trabajos.json
+SUELDO_DE_RESERVA = 50  # si el trabajo ya no esta en el catalogo (modo cooldown)
 
 
 def _ahora_iso() -> str:
@@ -33,17 +45,22 @@ def _parsear_fecha(valor):
 
 
 class Work(commands.Cog):
-    """Pago por trabajar con riesgo de enfermedad si no se respeta el cooldown."""
+    """Pago por trabajar: sesiones de turnos (default) o cooldown de 24h."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.gestor = turnos_trabajo.GestorSesiones()
+
+    # ------------------------------------------------------------------
+    # Comando principal
+    # ------------------------------------------------------------------
 
     @app_commands.command(
         name="work",
         description="Trabaja para ganar dinero y experiencia (requiere tener un trabajo).",
     )
     async def work(self, interaction: discord.Interaction):
-        """Aplica el cooldown de 24h y paga segun la rama que toque."""
+        """Enruta al modo de trabajo configurado para el servidor."""
         jugador = jugadores_repo.get_jugador(interaction.user.id)
         if jugador is None:
             await interaction.response.send_message(
@@ -51,6 +68,200 @@ class Work(commands.Cog):
             )
             return
 
+        if interaction.guild is not None:
+            config = servidor_repo.get_economia(interaction.guild.id)
+        else:
+            config = dict(servidor_repo.ECONOMIA_DEFAULTS)
+
+        if config.get("work_mode") == "cooldown":
+            await self._work_cooldown(interaction, jugador)
+        else:
+            await self._work_turnos(interaction, jugador, config)
+
+    # ------------------------------------------------------------------
+    # Modo turnos (estilo Nekotina)
+    # ------------------------------------------------------------------
+
+    async def _work_turnos(self, interaction, jugador, config):
+        """Abre una sesion de minijuego si el jugador tiene turnos hoy."""
+        slug = jugador.get("trabajo")
+        if not slug:
+            await interaction.response.send_message(
+                "❌ No tienes un trabajo asignado. Usa /postularse-trabajo para conseguir uno.",
+                ephemeral=True,
+            )
+            return
+
+        job = datos.buscar_trabajo(slug)
+        if job is None:
+            await interaction.response.send_message(
+                "⚠️ Tu profesion guardada (" + str(slug) + ") ya no existe en el catalogo."
+                " Postulate de nuevo con /postularse-trabajo.",
+                ephemeral=True,
+            )
+            return
+
+        hoy = turnos_trabajo.hoy_utc()
+        maximas = int(config.get("sessions_per_day", 2) or 2)
+        if turnos_trabajo.sesiones_disponibles(jugador, hoy, maximas) <= 0:
+            hechas = self._hechas_hoy(jugador, hoy)
+            await interaction.response.send_message(
+                "⏰ Llegaste al limite de hoy ("
+                + str(hechas)
+                + "/"
+                + str(maximas)
+                + " sesiones). Vuelve despues de las 00:00 UTC para un nuevo dia.",
+                ephemeral=True,
+            )
+            return
+
+        sesion = self.gestor.crear(interaction.user.id, config, job, random)
+
+        # El contador diario se guarda AL INICIAR la sesion
+        hechas = self._hechas_hoy(jugador, hoy)
+        jugadores_repo.actualizar_campos(
+            jugador["user_id"],
+            {"dia_ultimo_trabajo": hoy, "sesiones_hoy": hechas + 1},
+        )
+
+        vista = VistaTurno(self, interaction.user.id, sesion["pregunta_actual"])
+        await interaction.response.send_message(
+            "Sesion de trabajo como **"
+            + sesion["nombre_trabajo"]
+            + "** (turno 1 de "
+            + str(sesion["turnos_totales"])
+            + ")\n\n"
+            + sesion["pregunta_actual"]["texto"],
+            view=vista,
+        )
+
+    @staticmethod
+    def _hechas_hoy(jugador: dict, hoy: str) -> int:
+        """Sesiones ya contadas hoy (0 si el ultimo dia guardado es otro)."""
+        if jugador.get("dia_ultimo_trabajo") != hoy:
+            return 0
+        return int(jugador.get("sesiones_hoy", 0) or 0)
+
+    async def procesar_presion(self, interaction: discord.Interaction, indice: int):
+        """Procesa la presion de un boton de la sesion propia del usuario."""
+        user_id = interaction.user.id
+        sesion = self.gestor.obtener(user_id)
+        if sesion is None:
+            self.gestor.liberar(user_id)
+            await interaction.response.edit_message(
+                content="Sesion expirada. Usa /work para empezar otra.", view=None
+            )
+            return
+
+        resultado = self.gestor.responder(user_id, indice, random)
+        if resultado is None:
+            await interaction.response.edit_message(
+                content="Sesion expirada. Usa /work para empezar otra.", view=None
+            )
+            return
+
+        if not resultado["final"]:
+            await self._mostrar_siguiente_turno(interaction, sesion, resultado)
+            return
+
+        await self._cerrar_sesion(interaction, sesion, resultado)
+
+    async def _mostrar_siguiente_turno(self, interaction, sesion, resultado):
+        """Edita el mensaje con el feedback y la pregunta del proximo turno."""
+        if resultado["acerto"]:
+            feedback = (
+                "Correcto: +$"
+                + str(resultado["pago"])
+                + " y +"
+                + str(resultado["xp"])
+                + " XP."
+            )
+        else:
+            feedback = "Incorrecto."
+            if resultado["perdio_salud"]:
+                feedback = feedback + " El esfuerzo te paso factura: perderas 10 de salud."
+
+        pregunta = sesion["pregunta_actual"]
+        vista = VistaTurno(self, interaction.user.id, pregunta)
+        await interaction.response.edit_message(
+            content="Turno "
+            + str(sesion["turno_actual"])
+            + " de "
+            + str(sesion["turnos_totales"])
+            + "\n\n"
+            + pregunta["texto"]
+            + "\n\n"
+            + feedback,
+            view=vista,
+        )
+
+    async def _cerrar_sesion(self, interaction, sesion, resultado):
+        """Aplica pagos, XP y salud del resumen y muestra el resultado final."""
+        resumen = resultado["resumen"]
+        user_id = interaction.user.id
+
+        jugador = jugadores_repo.get_jugador(user_id)
+        dinero = int(jugador.get("dinero", 0) or 0)
+        experiencia = int(jugador.get("experiencia", 0) or 0)
+        salud = int(jugador.get("salud", 100) or 0)
+
+        campos = {
+            "dinero": dinero + int(resumen["total"]),
+            "experiencia": experiencia + int(resumen["xp"]),
+            "salud": max(0, salud - int(resumen.get("salud_perdida", 0))),
+        }
+
+        # Limpieza de enfermedad vieja (misma regla que el modo cooldown)
+        enfermedad = jugador.get("enfermedad")
+        fecha_enf = _parsear_fecha(jugador.get("fecha_enfermedad"))
+        if enfermedad and fecha_enf is not None:
+            if datetime.now(tz=timezone.utc) - fecha_enf > timedelta(
+                days=DIAS_LIMITE_ENFERMEDAD
+            ):
+                campos["enfermedad"] = None
+                campos["fecha_enfermedad"] = None
+
+        jugadores_repo.actualizar_campos(user_id, campos)
+
+        hoy = turnos_trabajo.hoy_utc()
+        maximas = int(sesion["config"].get("sessions_per_day", 2) or 2)
+        hechas = self._hechas_hoy(jugador, hoy)
+        restantes = max(0, maximas - hechas)
+
+        lineas = [
+            "Sesion terminada como **" + sesion["nombre_trabajo"] + "**",
+            "Aciertos: **"
+            + str(resumen["aciertos"])
+            + " de "
+            + str(resumen["turnos"])
+            + "**",
+            "Ganancia: **$" + str(resumen["total"]) + "**",
+        ]
+        if int(resumen["bonus"]) > 0:
+            lineas.append("Bonus por racha perfecta: **+$" + str(resumen["bonus"]) + "**")
+        lineas.append("Experiencia: **+" + str(resumen["xp"]) + " XP**")
+        if int(resumen.get("salud_perdida", 0)) > 0:
+            lineas.append(
+                "Salud: **-"
+                + str(resumen["salud_perdida"])
+                + "** (salud actual "
+                + str(campos["salud"])
+                + "/100)"
+            )
+        lineas.append(
+            "Sesiones restantes hoy: **" + str(restantes) + " de " + str(maximas) + "**"
+        )
+
+        await interaction.response.edit_message(
+            content="\n".join(lineas), view=None
+        )
+
+    # ------------------------------------------------------------------
+    # Modo cooldown clasico (comportamiento historico, se conserva)
+    # ------------------------------------------------------------------
+
+    async def _work_cooldown(self, interaction, jugador):
+        """Flujo historico: pago cada 24h, reducido y con riesgo si se anticipa."""
         slug = jugador.get("trabajo")
         if not slug:
             await interaction.response.send_message(
