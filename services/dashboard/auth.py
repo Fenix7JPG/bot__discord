@@ -27,14 +27,13 @@ _clave_aleatoria: str | None = None
 def clave_firma() -> str:
     """Clave para firmar la cookie de sesion del panel.
 
-    Orden: DASHBOARD_SECRET, LOG_PASSWORD, y como ultimo recurso una clave
-    aleatoria por proceso (las sesiones previas dejan de valer al reiniciar).
+    DASHBOARD_SECRET si existe; si no, una clave aleatoria por proceso
+    (las sesiones previas dejan de valer al reiniciar: aceptable).
+    LOG_PASSWORD es SOLO del visor /terminal, no participa aqui.
     """
     global _clave_aleatoria
     if settings.dashboard_secret:
         return settings.dashboard_secret
-    if settings.log_password:
-        return settings.log_password
     if _clave_aleatoria is None:
         _clave_aleatoria = secrets.token_urlsafe(48)
     return _clave_aleatoria

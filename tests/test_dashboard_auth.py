@@ -137,18 +137,14 @@ def test_clave_firma_con_dashboard_secret(monkeypatch):
     assert auth.clave_firma() == "secreto-largo"
 
 
-def test_clave_firma_cae_a_log_password(monkeypatch):
+def test_clave_firma_sin_secret_genera_aleatoria(monkeypatch):
     from config import settings
 
     monkeypatch.setattr(settings, "dashboard_secret", "")
-    monkeypatch.setattr(settings, "log_password", "contrasena")
-    assert auth.clave_firma() == "contrasena"
-
-
-def test_clave_firma_aleatoria_si_no_hay_nada(monkeypatch):
-    from config import settings
-
-    monkeypatch.setattr(settings, "dashboard_secret", "")
-    monkeypatch.setattr(settings, "log_password", "")
+    monkeypatch.setattr(settings, "log_password", "contrasena-visor")
     clave = auth.clave_firma()
-    assert len(clave) >= 32, "la clave de respaldo debe ser aleatoria y larga"
+    assert len(clave) >= 32, "la clave debe ser aleatoria y larga"
+    # LOG_PASSWORD es del visor /terminal y NO debe usarse para firmar el panel
+    assert clave != "contrasena-visor"
+    # estable dentro del mismo proceso (las sesiones no se rompen entre requests)
+    assert auth.clave_firma() == clave

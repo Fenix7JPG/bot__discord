@@ -28,7 +28,8 @@ check en el puerto que Render asigna (variable PORT).
      https://mi-bot.onrender.com). La redirect URI a registrar en el portal es
      DASHBOARD_PUBLIC_URL + /panel/callback
    - DASHBOARD_SECRET: cadena larga y aleatoria para firmar la sesion del panel
-     (si falta usa LOG_PASSWORD, y si tampoco hay, una aleatoria por proceso).
+     (si falta se genera una aleatoria por proceso y las sesiones del panel
+     caducan al reiniciar el servicio).
    Con el login (scope identify + guilds) el panel lista solo los servidores
    donde el usuario es administrador y el bot esta presente; desde ahi se
    editan la economia/trabajos (modo de trabajo, minijuego, turnos, sesiones
